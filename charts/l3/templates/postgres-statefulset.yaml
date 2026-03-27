@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "l3.base" . }}-postgres
+spec:
+  serviceName: {{ include "l3.base" . }}-postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "l3.base" . }}-postgres
+  template:
+    metadata:
+      labels:
+        app: {{ include "l3.base" . }}-postgres
+    spec:
+      containers:
+      - name: postgres
+        image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: keycloak
+        - name: POSTGRES_USER
+          value: keycloak
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "l3.base" . }}-secrets
+              key: KEYCLOAK_DB_PASSWORD
+        volumeMounts:
+        - name: postgres-data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-data
+        persistentVolumeClaim:
+          claimName: {{ include "l3.base" . }}-postgres-data

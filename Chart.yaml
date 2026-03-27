@@ -1,0 +1,22 @@
+﻿apiVersion: v2
+name: open-data-spaces-sdk
+description: Parent chart for open-data-spaces-sdk functional subcharts
+type: application
+version: 0.2.0
+appVersion: "latest"
+dependencies:
+  - name: l2
+    version: 0.1.0
+    repository: "file://charts/l2"
+  - name: l3
+    version: 0.1.0
+    repository: "file://charts/l3"
+  - name: logging
+    version: 0.1.0
+    repository: "file://charts/logging"
+  - name: mockserver
+    version: 0.1.0
+    repository: "file://charts/mockserver"
+  - name: payment
+    version: 0.1.0
+    repository: "file://charts/payment"

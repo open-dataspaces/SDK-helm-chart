@@ -1,0 +1,39 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "l3.base" . }}-openfga
+spec:
+  replicas: {{ .Values.openfga.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "l3.base" . }}-openfga
+  template:
+    metadata:
+      labels:
+        app: {{ include "l3.base" . }}-openfga
+    spec:
+      containers:
+      - name: openfga
+        image: "{{ .Values.openfga.image.repository }}:{{ .Values.openfga.image.tag }}"
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        args: ["run"]
+        ports:
+        - containerPort: {{ .Values.openfga.service.apiPort }}
+        - containerPort: {{ .Values.openfga.service.metricsPort }}
+        - containerPort: {{ .Values.openfga.service.playgroundPort }}
+        env:
+        - name: OPENFGA_HTTP_ADDR
+          value: "0.0.0.0:{{ .Values.openfga.service.apiPort }}"
+        - name: OPENFGA_DATASTORE_ENGINE
+          value: postgres
+        - name: OPENFGA_DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "l3.base" . }}-secrets
+              key: OPENFGA_DB_PASSWORD
+        - name: OPENFGA_DATASTORE_URI
+          value: "postgres://openfga:$(OPENFGA_DB_PASSWORD)@{{ include "l3.base" . }}-postgres-openfga:5432/openfga?sslmode=disable"
+        - name: OPENFGA_AUTHN_METHOD
+          value: none
+        - name: OPENFGA_LOG_LEVEL
+          value: info

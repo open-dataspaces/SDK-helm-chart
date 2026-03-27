@@ -1,0 +1,39 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {{ include "logging.base" . }}-minio-init
+  annotations:
+    helm.sh/hook: post-install,post-upgrade
+    helm.sh/hook-delete-policy: before-hook-creation
+spec:
+  backoffLimit: 5
+  template:
+    spec:
+      restartPolicy: OnFailure
+      containers:
+      - name: minio-init
+        image: "{{ .Values.minio.image.repository }}:{{ .Values.minio.image.tag }}"
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        env:
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "logging.base" . }}-secrets
+              key: MINIO_ROOT_USER
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "logging.base" . }}-secrets
+              key: MINIO_ROOT_PASSWORD
+        command:
+        - /bin/sh
+        - -lc
+        - |
+          until mc alias set local http://{{ include "logging.base" . }}-minio:{{ .Values.minio.service.apiPort }} "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; do
+            echo "waiting for minio..."
+            sleep 2
+          done
+          mc mb -p local/{{ .Values.minio.bucketName }} || true
+          mc anonymous set none local/{{ .Values.minio.bucketName }}
+          echo "minio init done"
+

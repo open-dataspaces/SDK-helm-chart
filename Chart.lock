@@ -1,0 +1,18 @@
+dependencies:
+- name: l2
+  repository: file://charts/l2
+  version: 0.1.0
+- name: l3
+  repository: file://charts/l3
+  version: 0.1.0
+- name: logging
+  repository: file://charts/logging
+  version: 0.1.0
+- name: mockserver
+  repository: file://charts/mockserver
+  version: 0.1.0
+- name: payment
+  repository: file://charts/payment
+  version: 0.1.0
+digest: sha256:c4475027052400f33993c1a00750eb4b885b374f9e5e945a41176373ae0de856
+generated: "2026-03-10T14:04:20.876886165+09:00"

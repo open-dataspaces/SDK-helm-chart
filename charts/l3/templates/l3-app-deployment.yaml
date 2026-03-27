@@ -1,0 +1,68 @@
+﻿{{- $keycloakInternalUrl := printf "http://%s-keycloak:%v" (include "l3.base" .) .Values.keycloak.service.httpPort -}}
+{{- $keycloakPublicUrl := default $keycloakInternalUrl .Values.keycloak.externalUrl -}}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "l3.base" . }}-l3-app
+spec:
+  replicas: {{ .Values.l3App.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "l3.base" . }}-l3-app
+  template:
+    metadata:
+      labels:
+        app: {{ include "l3.base" . }}-l3-app
+    spec:
+      containers:
+      - name: l3-app
+        image: "{{ .Values.l3App.image.repository }}:{{ .Values.l3App.image.tag }}"
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        ports:
+        - containerPort: {{ .Values.l3App.service.port }}
+        env:
+        - name: SPRING_PROFILES_ACTIVE
+          value: local
+        - name: SPRING_DATASOURCE_DRIVER_CLASS_NAME
+          value: org.postgresql.Driver
+        - name: SPRING_DATASOURCE_URL
+          value: jdbc:postgresql://{{ include "l3.base" . }}-postgres:5432/db_ods
+        - name: SPRING_DATASOURCE_USERNAME
+          value: app_ods
+        - name: SPRING_DATASOURCE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "l3.base" . }}-secrets
+              key: KEYCLOAK_DB_PASSWORD
+        - name: LOGGING_LEVEL_COM_ODS
+          value: DEBUG
+        - name: KEYCLOAK_REALM
+          value: master
+        - name: KEYCLOAK_API_ENDPOINT
+          value: http://{{ include "l3.base" . }}-keycloak:{{ .Values.keycloak.service.httpPort }}
+        - name: KEYCLOAK_CREDENTIALS_ADMIN_REALM
+          value: master
+        - name: KEYCLOAK_CREDENTIALS_ADMIN_USERNAME
+          value: admin
+        - name: KEYCLOAK_CREDENTIALS_ADMIN_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "l3.base" . }}-secrets
+              key: KEYCLOAK_ADMIN_PASSWORD
+        - name: KEYCLOAK_CREDENTIALS_ADMIN_CLIENT_ID
+          value: admin-cli
+        - name: KEYCLOAK_CREDENTIALS_TOKEN_INTROSPECT_CLIENT_ID
+          value: {{ .Values.l3App.keycloakIntrospectClientId | quote }}
+        - name: KEYCLOAK_CREDENTIALS_TOKEN_INTROSPECT_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "l3.base" . }}-secrets
+              key: L3_KEYCLOAK_INTROSPECT_CLIENT_SECRET
+        - name: KEYCLOAK_AUTHORIZATION_URL
+          value: {{ $keycloakPublicUrl | quote }}
+        - name: OPENFGA_API_ENDPOINT
+          value: http://{{ include "l3.base" . }}-openfga:{{ .Values.openfga.service.apiPort }}
+        - name: ODS_IS_ENABLE_IP_RESTRICTION
+          value: "true"
+        - name: ODS_DATABASE_SSL
+          value: "false"

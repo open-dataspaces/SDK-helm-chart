@@ -1,0 +1,17 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "logging.base" . }}-fluentd
+spec:
+  type: {{ .Values.global.serviceType }}
+  selector:
+    app: {{ include "logging.base" . }}-fluentd
+  ports:
+  - name: tcp
+    port: {{ .Values.fluentd.service.tcpPort }}
+    targetPort: {{ .Values.fluentd.service.tcpPort }}
+    protocol: TCP
+  - name: udp
+    port: {{ .Values.fluentd.service.udpPort }}
+    targetPort: {{ .Values.fluentd.service.udpPort }}
+    protocol: UDP

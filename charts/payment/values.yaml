@@ -1,0 +1,168 @@
+﻿enabled: true
+global:
+  serviceType: ClusterIP
+  imagePullPolicy: IfNotPresent
+
+secrets:
+  # Optional override for the Secret resource name managed by this chart.
+  secretName: ""
+  paymentSecretKey: dev-only-secret-key-change-in-production
+  paymentApiKey: payment-api-key
+  paymentL3ClientSecret: E8gxQLxXZ3ajCKiD9mh6GwNbQewMFNIL
+
+persistence:
+  paymentDb:
+    size: 2Gi
+
+paymentDb:
+  image:
+    repository: postgres
+    tag: 18-alpine
+  env:
+    postgresUser: postgres
+    postgresPassword: postgres
+    postgresDb: fastapi_db
+
+paymentApp:
+  replicaCount: 1
+  image:
+    repository: payment-app
+    tag: latest
+  service:
+    type: ClusterIP
+    port: 8001
+    targetPort: 8000
+
+  podAnnotations:
+    prometheus.io/scrape: "true"
+    prometheus.io/port: "8000"
+    prometheus.io/path: "/metrics"
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+    readOnlyRootFilesystem: true
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  livenessProbe:
+    httpGet:
+      path: /health
+      port: http
+    initialDelaySeconds: 30
+    periodSeconds: 10
+    timeoutSeconds: 5
+    failureThreshold: 3
+
+  readinessProbe:
+    httpGet:
+      path: /readiness
+      port: http
+    initialDelaySeconds: 10
+    periodSeconds: 5
+    timeoutSeconds: 3
+    failureThreshold: 3
+
+  nodeSelector: {}
+  tolerations: []
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+      - weight: 100
+        podAffinityTerm:
+          labelSelector:
+            matchExpressions:
+            - key: app
+              operator: In
+              values:
+              - payment-app
+          topologyKey: kubernetes.io/hostname
+
+  env:
+  - name: ENVIRONMENT
+    value: "PRODUCTION"
+  - name: DEBUG
+    value: "False"
+  - name: LOG_LEVEL
+    value: "DEBUG"
+  - name: CORS_ORIGINS
+    value: "http://localhost:3000"
+  - name: OPERATOR_ID_VERIFICATION_ENABLED
+    value: "true"
+  - name: L3_BASE_URL
+    value: "http://{{ .Release.Name }}-l3-l3-app.{{ .Release.Namespace }}.svc.cluster.local:8080"
+  - name: L3_INTROSPECT_ENDPOINT
+    value: "/auth/token/introspect"
+  - name: L3_API_KEY
+    value: "API-Key-Sample"
+  - name: L3_CLIENT_ID
+    value: "system-auth-sample"
+  - name: AUTHZ_ENABLED
+    value: "false"
+  - name: AUTHZ_BASE_URL
+    value: "http://{{ .Release.Name }}-l3-openfga.{{ .Release.Namespace }}.svc.cluster.local:8083"
+  - name: AUTHZ_OPENFGA_STORE_ID
+    value: "01KGDSM4M9H08M29F4QAXD6ZCS"
+  - name: AUTHZ_OPENFGA_MODEL_ID
+    value: "01KGDSM4MTW1RYTEPZYJFRT3YM"
+  - name: EXTERNAL_PAYMENT_ENABLED
+    value: "true"
+  - name: NP_KAKEBARAI_BASE_URL
+    value: "http://np-kakebarai-mock-api:8000"
+  - name: NP_KAKEBARAI_SHOP_CODE
+    value: "test-shop"
+  - name: NP_KAKEBARAI_SP_CODE
+    value: "test-sp-code"
+  - name: NP_KAKEBARAI_SERVICE_ID
+    value: "00000000-0000-0000-0000-000000000000"
+  - name: POSTGRES_HOST
+    value: "{{ include \"payment.dbName\" . }}"
+  - name: POSTGRES_PORT
+    value: "5432"
+  - name: POSTGRES_DB
+    value: "fastapi_db"
+  - name: POSTGRES_USER
+    value: "postgres"
+  - name: POSTGRES_PASSWORD
+    value: "postgres"
+  - name: DB_CONNECT_TIMEOUT
+    value: "10"
+  - name: DB_POOL_TIMEOUT
+    value: "10"
+  - name: LOG_JSON_FORMAT
+    value: "false"
+  - name: LOG_FILE_ENABLED
+    value: "false"
+  - name: LOG_COLORIZE
+    value: "true"
+  - name: APP_NAME
+    value: "payment-api"
+  - name: SQLALCHEMY_LOG_LEVEL
+    value: "ERROR"
+  - name: UVICORN_LOG_LEVEL
+    value: "debug"
+
+  secretEnv:
+  - name: SECRET_KEY
+    key: PAYMENT_SECRET_KEY
+  - name: X_PAYMENT_API_KEY
+    key: PAYMENT_API_KEY
+  - name: L3_CLIENT_SECRET
+    key: PAYMENT_L3_CLIENT_SECRET
+
+

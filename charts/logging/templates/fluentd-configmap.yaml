@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "logging.base" . }}-fluentd-config
+data:
+  fluent.conf: |
+{{ .Files.Get "files/fluent.conf" | replace "http://minio:9000" (printf "http://%s-minio:%v" (include "logging.base" .) .Values.minio.service.apiPort) | indent 4 }}

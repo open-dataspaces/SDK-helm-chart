@@ -1,0 +1,15 @@
+﻿apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "l3.base" . }}-keycloak
+spec:
+  type: {{ .Values.global.serviceType }}
+  selector:
+    app: {{ include "l3.base" . }}-keycloak
+  ports:
+  - name: http
+    port: {{ .Values.keycloak.service.httpPort }}
+    targetPort: {{ .Values.keycloak.service.httpPort }}
+  - name: https
+    port: {{ .Values.keycloak.service.httpsPort }}
+    targetPort: {{ .Values.keycloak.service.httpsPort }}

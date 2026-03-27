@@ -1,0 +1,45 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "logging.base" . }}-fluentd
+spec:
+  replicas: {{ .Values.fluentd.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "logging.base" . }}-fluentd
+  template:
+    metadata:
+      labels:
+        app: {{ include "logging.base" . }}-fluentd
+    spec:
+      containers:
+      - name: fluentd
+        image: "{{ .Values.fluentd.image.repository }}:{{ .Values.fluentd.image.tag }}"
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        securityContext:
+          runAsUser: 0
+        ports:
+        - containerPort: {{ .Values.fluentd.service.tcpPort }}
+          protocol: TCP
+        - containerPort: {{ .Values.fluentd.service.udpPort }}
+          protocol: UDP
+        volumeMounts:
+        - name: fluentd-config
+          mountPath: /fluentd/etc/fluent.conf
+          subPath: fluent.conf
+        - name: fluentd-buffer
+          mountPath: /tmp/fluentd-buf
+        - name: varlog
+          mountPath: /var/log
+          readOnly: true
+      volumes:
+      - name: fluentd-config
+        configMap:
+          name: {{ include "logging.base" . }}-fluentd-config
+      - name: fluentd-buffer
+        persistentVolumeClaim:
+          claimName: {{ include "logging.base" . }}-fluentd-buffer
+      - name: varlog
+        hostPath:
+          path: /var/log
+          type: Directory

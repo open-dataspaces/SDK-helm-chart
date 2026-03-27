@@ -1,0 +1,78 @@
+﻿apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "payment.appName" . }}
+spec:
+  replicas: {{ .Values.paymentApp.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "payment.appName" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "payment.appName" . }}
+      annotations:
+        checksum/secret: {{ include (print $.Template.BasePath "/secret.yaml") . | sha256sum }}
+      {{- with .Values.paymentApp.podAnnotations }}
+{{ toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      {{- with .Values.paymentApp.podSecurityContext }}
+      securityContext:
+{{ toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+      - name: payment-app
+        image: "{{ .Values.paymentApp.image.repository }}:{{ .Values.paymentApp.image.tag }}"
+        imagePullPolicy: {{ default .Values.global.imagePullPolicy .Values.paymentApp.image.pullPolicy }}
+        args: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+        ports:
+        - name: http
+          containerPort: {{ .Values.paymentApp.service.targetPort }}
+        {{- with .Values.paymentApp.securityContext }}
+        securityContext:
+{{ toYaml . | nindent 10 }}
+        {{- end }}
+        env:
+        {{- range .Values.paymentApp.env }}
+        - name: {{ .name }}
+          value: {{ tpl .value $ | quote }}
+        {{- end }}
+        {{- range .Values.paymentApp.secretEnv }}
+        - name: {{ .name }}
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "payment.secretName" $ }}
+              key: {{ .key }}
+        {{- end }}
+        {{- with .Values.paymentApp.livenessProbe }}
+        livenessProbe:
+{{ toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.paymentApp.readinessProbe }}
+        readinessProbe:
+{{ toYaml . | nindent 10 }}
+        {{- end }}
+        {{- with .Values.paymentApp.resources }}
+        resources:
+{{ toYaml . | nindent 10 }}
+        {{- end }}
+        volumeMounts:
+        - name: tmp
+          mountPath: /tmp
+      volumes:
+      - name: tmp
+        emptyDir: {}
+      {{- with .Values.paymentApp.nodeSelector }}
+      nodeSelector:
+{{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.paymentApp.affinity }}
+      affinity:
+{{ toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.paymentApp.tolerations }}
+      tolerations:
+{{ toYaml . | nindent 8 }}
+      {{- end }}
+

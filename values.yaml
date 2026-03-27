@@ -1,0 +1,9 @@
+﻿# This parent values file is intentionally empty.
+# Manage configuration in each subchart values:
+# - charts/l2/values.yaml
+# - charts/l3/values.yaml
+# - charts/logging/values.yaml
+# - charts/mockserver/values.yaml
+# - charts/payment/values.yaml
+{}
+

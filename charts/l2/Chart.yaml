@@ -1,0 +1,5 @@
+﻿apiVersion: v2
+name: l2
+description: L2 services
+version: 0.1.0
+type: application

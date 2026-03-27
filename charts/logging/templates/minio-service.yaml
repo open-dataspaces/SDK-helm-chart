@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "logging.base" . }}-minio
+spec:
+  type: {{ .Values.global.serviceType }}
+  selector:
+    app: {{ include "logging.base" . }}-minio
+  ports:
+  - name: api
+    port: {{ .Values.minio.service.apiPort }}
+    targetPort: {{ .Values.minio.service.apiPort }}
+  - name: console
+    port: {{ .Values.minio.service.consolePort }}
+    targetPort: {{ .Values.minio.service.consolePort }}

@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "logging.base" . }}-minio
+spec:
+  replicas: {{ .Values.minio.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "logging.base" . }}-minio
+  template:
+    metadata:
+      labels:
+        app: {{ include "logging.base" . }}-minio
+    spec:
+      containers:
+      - name: minio
+        image: "{{ .Values.minio.image.repository }}:{{ .Values.minio.image.tag }}"
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        args: ["server", "/data", "--console-address", ":{{ .Values.minio.service.consolePort }}"]
+        ports:
+        - containerPort: {{ .Values.minio.service.apiPort }}
+        - containerPort: {{ .Values.minio.service.consolePort }}
+        env:
+        - name: MINIO_ROOT_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "logging.base" . }}-secrets
+              key: MINIO_ROOT_USER
+        - name: MINIO_ROOT_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "logging.base" . }}-secrets
+              key: MINIO_ROOT_PASSWORD
+        volumeMounts:
+        - name: minio-data
+          mountPath: /data
+      volumes:
+      - name: minio-data
+        persistentVolumeClaim:
+          claimName: {{ include "logging.base" . }}-minio-data

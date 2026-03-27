@@ -1,0 +1,25 @@
+﻿enabled: true
+global:
+  serviceType: ClusterIP
+  imagePullPolicy: IfNotPresent
+secrets:
+  # Optional override for the Secret resource name managed by this chart.
+  secretName: ""
+  gatewayDbPassword: password
+gateway:
+  replicaCount: 1
+  image:
+    repository: ods/dp-http
+    tag: latest
+  service:
+    port: 8090
+  realm: master
+  # URL reachable from gateway container. Leave empty to use in-cluster service URL.
+  keycloakUrl: ""
+  # Must match token `iss`. Leave empty to derive from keycloakUrl + realm.
+  issuerUri: ""
+  # Optional explicit JWK URI. Leave empty to derive from keycloakUrl + realm.
+  jwkSetUri: ""
+  fgaStoreId: "01KMMMXHHPRYSM8TVDN5KCQ7J0"
+  fgaModelId: "01KMMMXHJGK2S2SFP8CRC9F84T"
+

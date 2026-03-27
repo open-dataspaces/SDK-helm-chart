@@ -1,0 +1,214 @@
+{
+  "schema_version": "1.1",
+  "type_definitions": [
+    {
+      "type": "user",
+      "relations": {},
+      "metadata": null
+    },
+    {
+      "type": "role",
+      "relations": {
+        "member": {
+          "this": {}
+        }
+      },
+      "metadata": {
+        "relations": {
+          "member": {
+            "directly_related_user_types": [
+              {
+                "type": "user",
+                "condition": ""
+              }
+            ],
+            "module": "",
+            "source_info": null
+          }
+        },
+        "module": "",
+        "source_info": null
+      }
+    },
+    {
+      "type": "api",
+      "relations": {
+        "GET": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "object": "",
+                  "relation": "allowed_get_roles"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "tupleset": {
+                    "object": "",
+                    "relation": "allowed_get_roles"
+                  },
+                  "computedUserset": {
+                    "object": "",
+                    "relation": "member"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "POST": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "object": "",
+                  "relation": "allowed_post_roles"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "tupleset": {
+                    "object": "",
+                    "relation": "allowed_post_roles"
+                  },
+                  "computedUserset": {
+                    "object": "",
+                    "relation": "member"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "PUT": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "object": "",
+                  "relation": "allowed_put_roles"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "tupleset": {
+                    "object": "",
+                    "relation": "allowed_put_roles"
+                  },
+                  "computedUserset": {
+                    "object": "",
+                    "relation": "member"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "DELETE": {
+          "union": {
+            "child": [
+              {
+                "computedUserset": {
+                  "object": "",
+                  "relation": "allowed_delete_roles"
+                }
+              },
+              {
+                "tupleToUserset": {
+                  "tupleset": {
+                    "object": "",
+                    "relation": "allowed_delete_roles"
+                  },
+                  "computedUserset": {
+                    "object": "",
+                    "relation": "member"
+                  }
+                }
+              }
+            ]
+          }
+        },
+        "allowed_get_roles": {
+          "this": {}
+        },
+        "allowed_post_roles": {
+          "this": {}
+        },
+        "allowed_put_roles": {
+          "this": {}
+        },
+        "allowed_delete_roles": {
+          "this": {}
+        }
+      },
+      "metadata": {
+        "relations": {
+          "GET": {
+            "directly_related_user_types": [],
+            "module": "",
+            "source_info": null
+          },
+          "POST": {
+            "directly_related_user_types": [],
+            "module": "",
+            "source_info": null
+          },
+          "PUT": {
+            "directly_related_user_types": [],
+            "module": "",
+            "source_info": null
+          },
+          "DELETE": {
+            "directly_related_user_types": [],
+            "module": "",
+            "source_info": null
+          },
+          "allowed_get_roles": {
+            "directly_related_user_types": [
+              {
+                "type": "role",
+                "condition": ""
+              }
+            ],
+            "module": "",
+            "source_info": null
+          },
+          "allowed_post_roles": {
+            "directly_related_user_types": [
+              {
+                "type": "role",
+                "condition": ""
+              }
+            ],
+            "module": "",
+            "source_info": null
+          },
+          "allowed_put_roles": {
+            "directly_related_user_types": [
+              {
+                "type": "role",
+                "condition": ""
+              }
+            ],
+            "module": "",
+            "source_info": null
+          },
+          "allowed_delete_roles": {
+            "directly_related_user_types": [
+              {
+                "type": "role",
+                "condition": ""
+              }
+            ],
+            "module": "",
+            "source_info": null
+          }
+        },
+        "module": "",
+        "source_info": null
+      }
+    }
+  ],
+  "conditions": {}
+}

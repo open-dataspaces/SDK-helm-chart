@@ -1,0 +1,19 @@
+﻿enabled: true
+global:
+  serviceType: ClusterIP
+  imagePullPolicy: IfNotPresent
+mockoon:
+  replicaCount: 1
+  image:
+    repository: mockoon/cli
+    tag: latest
+  service:
+    name: mockoon
+    port: 4011
+  args:
+    - -d
+    - /tmp/api.yaml
+    - -l
+    - 0.0.0.0
+    - -p
+    - "4011"

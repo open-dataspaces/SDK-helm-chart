@@ -1,0 +1,38 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "l3.base" . }}-postgres-openfga
+spec:
+  serviceName: {{ include "l3.base" . }}-postgres-openfga
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "l3.base" . }}-postgres-openfga
+  template:
+    metadata:
+      labels:
+        app: {{ include "l3.base" . }}-postgres-openfga
+    spec:
+      containers:
+      - name: postgres-openfga
+        image: "{{ .Values.postgres.image.repository }}:{{ .Values.postgres.image.tag }}"
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: openfga
+        - name: POSTGRES_USER
+          value: openfga
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: {{ include "l3.base" . }}-secrets
+              key: OPENFGA_DB_PASSWORD
+        volumeMounts:
+        - name: postgres-openfga-data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: postgres-openfga-data
+        persistentVolumeClaim:
+          claimName: {{ include "l3.base" . }}-postgres-openfga-data

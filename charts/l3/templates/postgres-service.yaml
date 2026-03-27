@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "l3.base" . }}-postgres
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ include "l3.base" . }}-postgres
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432

@@ -1,0 +1,13 @@
+﻿apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "payment.dbName" . }}
+spec:
+  type: ClusterIP
+  selector:
+    app: {{ include "payment.dbName" . }}
+  ports:
+  - name: postgres
+    port: 5432
+    targetPort: 5432
+

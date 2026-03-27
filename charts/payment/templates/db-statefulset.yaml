@@ -1,0 +1,37 @@
+﻿apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "payment.dbName" . }}
+spec:
+  serviceName: {{ include "payment.dbName" . }}
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{ include "payment.dbName" . }}
+  template:
+    metadata:
+      labels:
+        app: {{ include "payment.dbName" . }}
+    spec:
+      containers:
+      - name: payment-db
+        image: "{{ .Values.paymentDb.image.repository }}:{{ .Values.paymentDb.image.tag }}"
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_USER
+          value: {{ .Values.paymentDb.env.postgresUser | quote }}
+        - name: POSTGRES_PASSWORD
+          value: {{ .Values.paymentDb.env.postgresPassword | quote }}
+        - name: POSTGRES_DB
+          value: {{ .Values.paymentDb.env.postgresDb | quote }}
+        volumeMounts:
+        - name: db-data
+          mountPath: /var/lib/postgresql
+      volumes:
+      - name: db-data
+        persistentVolumeClaim:
+          claimName: {{ include "payment.base" . }}-db-data
+
+

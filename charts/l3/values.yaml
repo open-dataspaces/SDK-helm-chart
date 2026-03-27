@@ -1,0 +1,47 @@
+﻿enabled: true
+global:
+  serviceType: ClusterIP
+  imagePullPolicy: IfNotPresent
+secrets:
+  keycloakAdminPassword: password
+  keycloakDbPassword: password
+  openfgaDbPassword: password
+  l3KeycloakIntrospectClientSecret: "E8gxQLxXZ3ajCKiD9mh6GwNbQewMFNIL"
+persistence:
+  postgres:
+    size: 2Gi
+  postgresOpenfga:
+    size: 2Gi
+keycloak:
+  replicaCount: 1
+  # Public FQDN used for issuer/authorization URL (e.g. https://auth.example.com).
+  # Leave empty to use in-cluster service URL.
+  externalUrl: ""
+  image:
+    repository: quay.io/keycloak/keycloak
+    tag: 26.2.5
+  service:
+    httpPort: 8082
+    httpsPort: 8443
+postgres:
+  image:
+    repository: postgres
+    tag: "17"
+openfga:
+  replicaCount: 1
+  image:
+    repository: openfga-authzen
+    tag: latest
+  service:
+    apiPort: 8083
+    metricsPort: 8081
+    playgroundPort: 3000
+l3App:
+  replicaCount: 1
+  keycloakIntrospectClientId: "system-auth-sample"
+  image:
+    repository: l3-app
+    tag: latest
+  service:
+    port: 8080
+

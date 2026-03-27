@@ -1,0 +1,29 @@
+﻿enabled: true
+global:
+  serviceType: ClusterIP
+  imagePullPolicy: IfNotPresent
+secrets:
+  minioRootUser: minio-sample
+  minioRootPassword: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+persistence:
+  minio:
+    size: 5Gi
+  fluentdBuffer:
+    size: 2Gi
+fluentd:
+  replicaCount: 1
+  image:
+    repository: fluentd
+    tag: 1.19.1
+  service:
+    tcpPort: 24224
+    udpPort: 24224
+minio:
+  replicaCount: 1
+  image:
+    repository: quay.io/minio/minio
+    tag: latest
+  service:
+    apiPort: 9000
+    consolePort: 9001
+  bucketName: pj-a-sbx

@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "mockserver.base" . }}-mockoon
+spec:
+  replicas: {{ .Values.mockoon.replicaCount }}
+  selector:
+    matchLabels:
+      app: {{ include "mockserver.base" . }}-mockoon
+  template:
+    metadata:
+      labels:
+        app: {{ include "mockserver.base" . }}-mockoon
+    spec:
+      containers:
+      - name: mockoon
+        image: "{{ .Values.mockoon.image.repository }}:{{ .Values.mockoon.image.tag }}"
+        imagePullPolicy: {{ .Values.global.imagePullPolicy }}
+        args:
+{{- range .Values.mockoon.args }}
+        - {{ . | quote }}
+{{- end }}
+        ports:
+        - containerPort: {{ .Values.mockoon.service.port }}
+        volumeMounts:
+        - name: openapi
+          mountPath: /tmp/api.yaml
+          subPath: openapi.yaml
+      volumes:
+      - name: openapi
+        configMap:
+          name: {{ include "mockserver.base" . }}-openapi
