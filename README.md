@@ -78,9 +78,6 @@ L2 -- "リクエスト転送"--> IS
 
 ### 起動・停止
 
-
-
-
 起動
 
 ```
@@ -93,25 +90,27 @@ $ helm install ods .
 $ helm uninstall ods
 ```
 
-
 ### 各コンポーネントの初期設定
 
 各コンポーネントの初期設定手順を以下に示します。
 
 #### 事前準備 各コンポーネントのimage取得
-各コンポーネントをHelm Chartで起動する場合は事前にKubernetes環境にimageを取り込む必要があります。  
-なお、本Helm Chartでは[Docker Compose版のデプロイ定義ファイル](https://github.com/data-distro-com/open-data-spaces-sdk-docker-compose)内でビルドされるimageと同様のものを想定しています。  
-imageをビルドする場合 Docker Compose を取得し、[各コンポーネントの初期設定](https://github.com/data-distro-com/open-data-spaces-sdk-docker-compose?tab=readme-ov-file#%E5%90%84%E3%82%B3%E3%83%B3%E3%83%9D%E3%83%BC%E3%83%8D%E3%83%B3%E3%83%88%E3%81%AE%E5%88%9D%E6%9C%9F%E8%A8%AD%E5%AE%9A)の公式リポジトリからコピー後、以下のコマンドを実行してください。
+
+各コンポーネントをHelm Chartで起動する場合は事前にKubernetes環境にimageを取り込む必要があります。
+なお、本Helm Chartでは[Docker Compose版のデプロイ定義ファイル](https://github.com/open-dataspaces/SDK-docker-compose)内でビルドされるimageと同様のものを想定しています。  
+imageをビルドする場合 Docker Compose を取得し、[各コンポーネントの初期設定](https://github.com/open-dataspaces/SDK-docker-compose?tab=readme-ov-file#%E5%90%84%E3%82%B3%E3%83%B3%E3%83%9D%E3%83%BC%E3%83%8D%E3%83%B3%E3%83%88%E3%81%AE%E5%88%9D%E6%9C%9F%E8%A8%AD%E5%AE%9A)の公式リポジトリからコピー後、以下のコマンドを実行してください。
+
 ```
-$ docker build ./l3/Dockerfile -t openfga-authzen:latest
-$ docker build ./l3/Dockerfile-local -t l3-app:latest
-$ docker build ./l2/Dockerfile -t ods/dp-http:latest
-$ docker build ./paymet/Dockerfile -t payment-app:latest
+$ docker build . -f ./l3/Dockerfile -t openfga-authzen:latest
+$ docker build . -f ./l3/Dockerfile-local -t l3-app:latest
+$ docker build . -f ./l2/Dockerfile -t ods/dp-http:latest
+$ docker build . -f ./payment/Dockerfile -t payment-app:latest
 ```
 
 上記の手順でビルドしたimageをKubernetes環境に取り込む例として、kindを使用する場合の例を示します。なお、クラスタ名はods、ネームスペースはdefaultとしています。
+
 ```
-$ kind load docker-image ods/dp-http:latest openfga-authzen:latest l3-app:latest  payment-app:latest --name ods
+$ kind load docker-image ods/dp-http:latest openfga-authzen:latest l3-app:latest payment-app:latest --name ods
 ```
 
 環境の準備が完了したら、リポジトリのトップレベルに配置されている Chart.yaml ファイルを使ってすべてのサービスを起動します。
@@ -129,13 +128,12 @@ REVISION: 1
 TEST SUITE: None
 ```
 
-
 この状態から、コンポーネント別の初期設定を行います。
 
 #### L3: アイデンティティコンポーネント
 
-L3では、[サービス起動](https://github.com/open-dataspaces/L3-identity-component/tree/main?tab=readme-ov-file#1-%E3%82%B5%E3%83%BC%E3%83%93%E3%82%B9%E8%B5%B7%E5%8B%95)および[参考実装チュートリアル](https://github.com/open-dataspaces/L3-identity-component/blob/main/docs/tutorials/tutorials.md)に示す初期設定が必要です。
-本SDKでは、後者の「[2. ユーザ認証システム動作確認](https://github.com/open-dataspaces/L3-identity-component/blob/main/docs/tutorials/tutorials.md#2-%E3%83%A6%E3%83%BC%E3%82%B6%E8%AA%8D%E8%A8%BC%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0%E5%8B%95%E4%BD%9C%E7%A2%BA%E8%AA%8D)」までを一括で実施するスクリプトを提供しています。実行方法は以下の通りです。
+L3では、[サービス起動](https://github.com/open-dataspaces/L3-identity-component/tree/v1.0.0?tab=readme-ov-file#1-%E3%82%B5%E3%83%BC%E3%83%93%E3%82%B9%E8%B5%B7%E5%8B%95)および[参考実装チュートリアル](https://github.com/open-dataspaces/L3-identity-component/blob/v1.0.0/docs/tutorials/tutorials.md)に示す初期設定が必要です。
+本SDKでは、後者の「[2. ユーザ認証システム動作確認](https://github.com/open-dataspaces/L3-identity-component/blob/v1.0.0/docs/tutorials/tutorials.md#2-%E3%83%A6%E3%83%BC%E3%82%B6%E8%AA%8D%E8%A8%BC%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0%E5%8B%95%E4%BD%9C%E7%A2%BA%E8%AA%8D)」までを一括で実施するスクリプトを提供しています。実行方法は以下の通りです。
 
 ```
 $ cd setup
@@ -144,7 +142,7 @@ $ cd -
 $ helm upgrade ods .
 ```
 
-上記の手順で Keycloak に作成される2つのクライアントID（クライアントシステム認証およびユーザ当人認証）は、[2. Keycloak環境設定](https://github.com/pj-ods-a/open-data-spaces-l3-public/blob/main/docs/tutorials/README.md#2-keycloak%E7%92%B0%E5%A2%83%E8%A8%AD%E5%AE%9A) で作成されるものと同一です。
+上記の手順で Keycloak に作成される2つのクライアントID（クライアントシステム認証およびユーザ当人認証）は、[2. ユーザ認証システム動作確認](https://github.com/open-dataspaces/L3-identity-component/blob/v1.0.0/docs/tutorials/tutorials.md#2-%E3%83%A6%E3%83%BC%E3%82%B6%E8%AA%8D%E8%A8%BC%E3%82%B7%E3%82%B9%E3%83%86%E3%83%A0%E5%8B%95%E4%BD%9C%E7%A2%BA%E8%AA%8D) で作成されるものと同一です。
 変更する場合は setup/setup_l3.sh を編集してください。
 
 次に以下のコマンドを実行することで、OpenFGA のストア及び認可モデルを作成し、その内容を `charts/l2/values.yaml` に反映します。
@@ -165,8 +163,11 @@ $ cd -
 ## 運用構築
 
 ### 事前準備
+
 #### ポートフォワード
+
 本手順ではKubernetes上に立ち上げた各サービスに対してポートフォワードを行い動作を実施します。
+
 ```
 $ kubectl port-forward svc/ods-l3-l3-app 8080:8080
 $ kubectl port-forward svc/ods-l3-keycloak 8082:8082
@@ -197,7 +198,7 @@ $ curl -X PUT "http://localhost:8082/admin/realms/master" \
 
 ### 運用開始に向けた各種データ設定
 
-[参考実装チュートリアル 2-1. 認証情報の作成（事業者情報/個人ユーザ/クライアントID）](https://github.com/open-dataspaces/L3-identity-component/blob/main/docs/tutorials/tutorials.md#2-1-%E8%AA%8D%E8%A8%BC%E6%83%85%E5%A0%B1%E3%81%AE%E4%BD%9C%E6%88%90%E4%BA%8B%E6%A5%AD%E8%80%85%E6%83%85%E5%A0%B1%E5%80%8B%E4%BA%BA%E3%83%A6%E3%83%BC%E3%82%B6%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88id)に記載の手順に従い、事業者情報の登録から[2-1-5. 事業者クライアントシークレット取得](https://github.com/open-dataspaces/L3-identity-component/blob/main/docs/tutorials/tutorials.md#2-1-5-%E4%BA%8B%E6%A5%AD%E8%80%85%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88%E3%82%B7%E3%83%BC%E3%82%AF%E3%83%AC%E3%83%83%E3%83%88%E5%8F%96%E5%BE%97)までを実行してください。宛先のホストには localhost:8080 を指定してください。また、本手順で必要な `$SYSTEM_CLIENT_SECRET` には、l3/docker-compose.yml の以下の設定値を、`API-Key`は`API-Key-Sample`を、`client_id`には`system-auth-sample`指定してください。
+[参考実装チュートリアル 2-1. 認証情報の作成（事業者情報/個人ユーザ/クライアントID）](https://github.com/open-dataspaces/L3-identity-component/blob/v1.0.0/docs/tutorials/tutorials.md#2-1-%E8%AA%8D%E8%A8%BC%E6%83%85%E5%A0%B1%E3%81%AE%E4%BD%9C%E6%88%90%E4%BA%8B%E6%A5%AD%E8%80%85%E6%83%85%E5%A0%B1%E5%80%8B%E4%BA%BA%E3%83%A6%E3%83%BC%E3%82%B6%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88id)に記載の手順に従い、事業者情報の登録から[2-1-5. 事業者クライアントシークレット取得](https://github.com/open-dataspaces/L3-identity-component/blob/v1.0.0/docs/tutorials/tutorials.md#2-1-5-%E4%BA%8B%E6%A5%AD%E8%80%85%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88%E3%82%B7%E3%83%BC%E3%82%AF%E3%83%AC%E3%83%83%E3%83%88%E5%8F%96%E5%BE%97)までを実行してください。宛先のホストには localhost:8080 を指定してください。また、本手順で必要な `$SYSTEM_CLIENT_SECRET` には、l3/docker-compose.yml の以下の設定値を、`API-Key`は`API-Key-Sample`を、`client_id`には`system-auth-sample`指定してください。
 
 ```
 l3KeycloakIntrospectClientSecret
@@ -379,8 +380,8 @@ $ curl -X POST\
 
 本リポジトリのデプロイ定義ファイルで配備されるコンポーネント群、およびそれらと連携するインダストリサービスを用いて、利用者と提供者との間でデータ交換を行う手順を以下に示します。
 
-1. アクセストークンの取得  
-  [L3 参考実装チュートリアル 5-3. ユーザ当人認証（認可コードフロー）](https://github.com/pj-ods-a/open-data-spaces-l3-public/blob/main/docs/tutorials/README.md#5-3-%E3%83%A6%E3%83%BC%E3%82%B6%E5%BD%93%E4%BA%BA%E8%AA%8D%E8%A8%BC%E8%AA%8D%E5%8F%AF%E3%82%B3%E3%83%BC%E3%83%89%E3%83%95%E3%83%AD%E3%83%BC)を実施しアクセストークンを取得します。
+1. アクセストークンの取得
+   [L3 参考実装チュートリアル 2-2-1. アクセストークン取得（事業者クライアントID認証）](https://github.com/open-dataspaces/L3-identity-component/blob/v1.0.0/docs/tutorials/tutorials.md#2-2-1-%E3%82%A2%E3%82%AF%E3%82%BB%E3%82%B9%E3%83%88%E3%83%BC%E3%82%AF%E3%83%B3%E5%8F%96%E5%BE%97%E4%BA%8B%E6%A5%AD%E8%80%85%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88id%E8%AA%8D%E8%A8%BC)を実施しアクセストークンを取得します。なお、宛先のホストには localhost:8080 を、`API-Key`は`API-Key-Sample`を指定してください。
 
 2. データアクセス  
   取得したアクセストークンを用いてデータアクセスを実施します。
@@ -435,9 +436,11 @@ paymentL3ClientSecret
 ```
 $ helm upgrade ods .
 ```
+
 3. あらかじめ、動作確認用にダミーの決済サービスと、その決済サービスに紐付けられたデータ提供者・データ利用者をDBに登録します。
    ここでは簡単のため、データ提供者とデータ利用者に同一のIDを使用します。
    また、登録したサービスのIDを変数に記憶しておきます。
+
 ```
 # Pod 名を取得
 $ kubectl get pods -l app=ods-payment-payment-db
@@ -472,7 +475,7 @@ created_at              | 2026-03-26 09:30:27.700757+00
 updated_at              | 2026-03-26 09:30:27.700757+00
 ```
 
-4. [L3 参考実装チュートリアル 2-2-1. アクセストークン取得（事業者クライアントID認証）](https://github.com/open-dataspaces/L3-identity-component/blob/main/docs/tutorials/tutorials.md#2-2-1-%E3%82%A2%E3%82%AF%E3%82%BB%E3%82%B9%E3%83%88%E3%83%BC%E3%82%AF%E3%83%B3%E5%8F%96%E5%BE%97%E4%BA%8B%E6%A5%AD%E8%80%85%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88id%E8%AA%8D%E8%A8%BC)を実行し、アクセストークンを取得します。宛先のホストには localhost:8080 を、`API-Key`は`API-Key-Sample`を指定してください。
+4. [L3 参考実装チュートリアル 2-2-1. アクセストークン取得（事業者クライアントID認証）](https://github.com/open-dataspaces/L3-identity-component/blob/v1.0.0/docs/tutorials/tutorials.md#2-2-1-%E3%82%A2%E3%82%AF%E3%82%BB%E3%82%B9%E3%83%88%E3%83%BC%E3%82%AF%E3%83%B3%E5%8F%96%E5%BE%97%E4%BA%8B%E6%A5%AD%E8%80%85%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88id%E8%AA%8D%E8%A8%BC)を実行し、アクセストークンを取得します。宛先のホストには localhost:8080 を、`API-Key`は`API-Key-Sample`を指定してください。
 
 #### 利用料モデル登録（提供者）
 
@@ -694,12 +697,16 @@ PVC内のデフォルトの出力先は以下です。
 http://localhost:9001/login からアクセスしユーザ名とパスワードを入力します。
 
 なお、本手順実行前にポートフォワードを実施してください。
+
 ```
 $ kubectl port-forward svc/ods-logging-minio 9001:9001
 ```
+
 ![ログイン画面](images/MinIO_login.png)
+
 - ユーザ名: minio-sample
 - パスワード: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
 これらのユーザ名、パスワードはcharts/logging/values.yaml を編集することで変更可能です。　
 なお変更した場合、charts/logging/files/fluentd.conf 内のMinIO設定を編集してください。
 
@@ -708,6 +715,7 @@ $ kubectl port-forward svc/ods-logging-minio 9001:9001
 ![ログ保管場所2](images/MinIO_pj-a-sbx_applogs.png)
 
 applog配下にログファイルが保存されているため、ダウンロード後解凍することで内容を確認できます。
+
 ![ログファイル一覧](images/MinIO_logfiles.png)
 
 #### L3: アイデンティティコンポーネント
