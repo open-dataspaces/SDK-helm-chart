@@ -212,7 +212,9 @@ $ curl -X PUT "http://localhost:8082/admin/realms/master" \
 
 ### Data Configuration for Starting Operations
 
-Follow the steps described in [L3 Reference Implementation Tutorial 2‑1. Creating Authentication Information (Operator Information, Individual Users, Client IDs)](https://github.com/open-dataspaces/L3-identity-component/blob/develop/docs/tutorials/tutorials_en.md#2-1-creation-of-authentication-information-operator-information--individual-users--client-ids)
+Follow the steps described in [L3 Reference Implementation Tutorial 2‑1. Creating Authentication Information (Operator Information, Individual Users, Client IDs)](https://github.com/open-dataspaces/L3-identity-component/blob/develop/docs/tutorials/tutorials_en.md#2-1-creation-of-authentication-information-operator-information--individual-users--client-ids), and execute the procedures from registering operator information through [2‑1‑5. Obtaining the Operator Client Secret](https://github.com/open-dataspaces/L3-identity-component/blob/develop/docs/tutorials/tutorials_en.md#2-1-5-retrieving-the-operator-client-secret).
+
+For this procedure, specify `localhost:8080` as the destination host, set `$SYSTEM_CLIENT_SECRET` to the value defined in `l3/docker-compose.yml` shown below, set `API-Key` to `API-Key-Sample`, and specify `system-auth-sample` as the `client_id`.
 
 ```
 l3KeycloakIntrospectClientSecret
@@ -409,9 +411,7 @@ The following describes the procedure for performing data exchange between consu
 
 1. Obtain an Access Token  
    Execute [L3 Reference Implementation Tutorial 2‑2‑1. Access Token Acquisition (Client Authentication)](https://github.com/open-dataspaces/L3-identity-component/blob/develop/docs/tutorials/tutorials_en.md#2-2-1-obtaining-an-access-token-operator-client-id-authentication) to obtain an access token.
-
-   Specify `localhost:8080` as the destination host.
-   Set `API-Key` to `API-Key-Sample`.
+   Specify `localhost:8080` as the destination host and set `API-Key` to `API-Key-Sample`.
 
 2. Data Access  
    Perform data access using the obtained access token.
@@ -519,11 +519,8 @@ created_at              | 2026-03-26 09:30:27.700757+00
 updated_at              | 2026-03-26 09:30:27.700757+00
 ```
 
-4. Obtain an access token by executing
-   [L3 Reference Implementation Tutorial 2‑2‑1. Access Token Acquisition (Client Authentication)](https://github.com/open-dataspaces/L3-identity-component/blob/develop/docs/tutorials/tutorials_en.md#2-2-1-obtain-access-token-operator-client-id-authentication).
-
-   Specify `localhost:8080` as the destination host.
-   Set `API-Key` to `API-Key-Sample`.
+4. Obtain an access token by executing [L3 Reference Implementation Tutorial 2‑2‑1. Access Token Acquisition (Client Authentication)](https://github.com/open-dataspaces/L3-identity-component/blob/develop/docs/tutorials/tutorials_en.md#2-2-1-obtain-access-token-operator-client-id-authentication).
+   Specify `localhost:8080` as the destination host and set `API-Key` to `API-Key-Sample`.
 
 #### Registering a Usage Fee Model (Provider)
 
