@@ -103,7 +103,7 @@ The initial setup procedures for each component are described below.
 When deploying the components using Helm Charts, the required container images must be loaded into the Kubernetes environment in advance.
 This Helm Chart assumes the same images that are built using the Docker Compose–based deployment definitions available in the following repository: https://github.com/open-dataspaces/SDK-docker-compose  
 
-To build the images, obtain Docker Compose, copy the necessary files from the official repository referenced in [Initial Setup of Each Component](https://github.com/open-dataspaces/SDK-docker-compose/blob/develop/README_en.md#initial-setup-of-each-component), and then execute the following commands:
+To build the images, obtain Docker Compose, copy the necessary files from the official repository referenced in [Initial Setup of Each Component](https://github.com/open-dataspaces/SDK-docker-compose/blob/main/README_en.md#initial-setup-of-each-component), and then execute the following commands:
 
 ```
 $ docker build . -f ./l3/Dockerfile -t openfga-authzen:latest
@@ -140,9 +140,9 @@ From this state, proceed with the initial configuration for each component.
 
 #### L3: Identity Component
 
-For L3, the initial setup described in [Service Startup](https://github.com/open-dataspaces/L3-identity-component/blob/develop/README_en.md#1-service-startup) and the [Reference Implementation Tutorial](https://github.com/open-dataspaces/L3-identity-component/blob/develop/docs/tutorials/tutorials_en.md) is required.
+For L3, the initial setup described in [Service Startup](https://github.com/open-dataspaces/L3-identity-component/blob/main/README_en.md#1-service-startup) and the [Reference Implementation Tutorial](https://github.com/open-dataspaces/L3-identity-component/blob/main/docs/tutorials/tutorials_en.md) is required.
 
-This SDK provides a script that executes all steps in the latter up to "[2. User Authentication System Verification](https://github.com/open-dataspaces/L3-identity-component/blob/develop/docs/tutorials/tutorials_en.md#2-user-authentication-system-verification)" in a single execution. The execution procedure is as follows.
+This SDK provides a script that executes all steps in the latter up to "[2. User Authentication System Verification](https://github.com/open-dataspaces/L3-identity-component/blob/main/docs/tutorials/tutorials_en.md#2-user-authentication-system-verification)" in a single execution. The execution procedure is as follows.
 
 ```
 $ cd setup
@@ -151,7 +151,7 @@ $ cd -
 $ helm upgrade ods .
 ```
 
-The two client IDs created in Keycloak by the above procedure (for client system authentication and end-user authentication) are identical to those created in ["2. User Authentication System Verification" of the Reference Implementation Tutorial](https://github.com/open-dataspaces/L3-identity-component/blob/develop/docs/tutorials/tutorials_en.md#2-user-authentication-system-verification)
+The two client IDs created in Keycloak by the above procedure (for client system authentication and end-user authentication) are identical to those created in ["2. User Authentication System Verification" of the Reference Implementation Tutorial](https://github.com/open-dataspaces/L3-identity-component/blob/main/docs/tutorials/tutorials_en.md#2-user-authentication-system-verification)
 
 If you need to change these settings, edit `setup/setup_l3.sh`.
 
@@ -212,7 +212,7 @@ $ curl -X PUT "http://localhost:8082/admin/realms/master" \
 
 ### Data Configuration for Starting Operations
 
-Follow the steps described in [L3 Reference Implementation Tutorial 2‑1. Creating Authentication Information (Operator Information, Individual Users, Client IDs)](https://github.com/open-dataspaces/L3-identity-component/blob/develop/docs/tutorials/tutorials_en.md#2-1-creation-of-authentication-information-operator-information--individual-users--client-ids), and execute the procedures from registering operator information through [2‑1‑5. Obtaining the Operator Client Secret](https://github.com/open-dataspaces/L3-identity-component/blob/develop/docs/tutorials/tutorials_en.md#2-1-5-retrieving-the-operator-client-secret).
+Follow the steps described in [L3 Reference Implementation Tutorial 2‑1. Creating Authentication Information (Operator Information, Individual Users, Client IDs)](https://github.com/open-dataspaces/L3-identity-component/blob/main/docs/tutorials/tutorials_en.md#2-1-creation-of-authentication-information-operator-information--individual-users--client-ids), and execute the procedures from registering operator information through [2‑1‑5. Obtaining the Operator Client Secret](https://github.com/open-dataspaces/L3-identity-component/blob/main/docs/tutorials/tutorials_en.md#2-1-5-retrieving-the-operator-client-secret).
 
 For this procedure, specify `localhost:8080` as the destination host, set `$SYSTEM_CLIENT_SECRET` to the value defined in `l3/docker-compose.yml` shown below, set `API-Key` to `API-Key-Sample`, and specify `system-auth-sample` as the `client_id`.
 
@@ -410,7 +410,7 @@ In this procedure, a mock server is used as an example.If all services are start
 The following describes the procedure for performing data exchange between consumers and providers using the components deployed by the deployment definition files in this repository, as well as the industry services integrated with them.
 
 1. Obtain an Access Token  
-   Execute [L3 Reference Implementation Tutorial 2‑2‑1. Access Token Acquisition (Client Authentication)](https://github.com/open-dataspaces/L3-identity-component/blob/develop/docs/tutorials/tutorials_en.md#2-2-1-obtaining-an-access-token-operator-client-id-authentication) to obtain an access token.
+   Execute [L3 Reference Implementation Tutorial 2‑2‑1. Access Token Acquisition (Client Authentication)](https://github.com/open-dataspaces/L3-identity-component/blob/main/docs/tutorials/tutorials_en.md#2-2-1-obtaining-an-access-token-operator-client-id-authentication) to obtain an access token.
    Specify `localhost:8080` as the destination host and set `API-Key` to `API-Key-Sample`.
 
 2. Data Access  
@@ -519,7 +519,7 @@ created_at              | 2026-03-26 09:30:27.700757+00
 updated_at              | 2026-03-26 09:30:27.700757+00
 ```
 
-4. Obtain an access token by executing [L3 Reference Implementation Tutorial 2‑2‑1. Access Token Acquisition (Client Authentication)](https://github.com/open-dataspaces/L3-identity-component/blob/develop/docs/tutorials/tutorials_en.md#2-2-1-obtain-access-token-operator-client-id-authentication).
+4. Obtain an access token by executing [L3 Reference Implementation Tutorial 2‑2‑1. Access Token Acquisition (Client Authentication)](https://github.com/open-dataspaces/L3-identity-component/blob/main/docs/tutorials/tutorials_en.md#2-2-1-obtain-access-token-operator-client-id-authentication).
    Specify `localhost:8080` as the destination host and set `API-Key` to `API-Key-Sample`.
 
 #### Registering a Usage Fee Model (Provider)
