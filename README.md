@@ -105,12 +105,13 @@ $ docker build . -f ./l3/Dockerfile -t openfga-authzen:latest
 $ docker build . -f ./l3/Dockerfile-local -t l3-app:latest
 $ docker build . -f ./l2/Dockerfile -t ods/dp-http:latest
 $ docker build . -f ./payment/Dockerfile -t payment-app:latest
+$ docker build . -f ./payment/Dockerfile.checkl2log -t ods-payment-checkl2log:latest
 ```
 
 上記の手順でビルドしたimageをKubernetes環境に取り込む例として、kindを使用する場合の例を示します。なお、クラスタ名はods、ネームスペースはdefaultとしています。
 
 ```
-$ kind load docker-image ods/dp-http:latest openfga-authzen:latest l3-app:latest payment-app:latest --name ods
+$ kind load docker-image ods/dp-http:latest openfga-authzen:latest l3-app:latest payment-app:latest ods-payment-checkl2log:latest --name ods
 ```
 
 環境の準備が完了したら、リポジトリのトップレベルに配置されている Chart.yaml ファイルを使ってすべてのサービスを起動します。
@@ -407,7 +408,100 @@ $ curl -X POST\
 
 精算・課金／決済サービスでは、データ提供者が登録した利用料モデルに従い、利用者と提供者の間で行われたデータ交換の履歴に基づいて両者への支払／請求額を計算し提示する機能と、外部サービスと連携して実際の決済を行う機能を提供します。取引の実績は利用者・提供者の双方から登録するとともに、Web API転送モジュールから収集したログ情報とも突合することで、正当性を担保します。詳細は[精算・課金／決済サービスのドキュメント](https://github.com/open-dataspaces/DCS-Payment)を参照してください。
 
-#### 準備
+#### 事前準備
+
+##### 事業者クライアント作成
+
+精算決済サービスの動作には、データ提供者とデータ利用者の二つの事業者クライアントが必要になります。[参考実装チュートリアル 2-1. 認証情報の作成（事業者情報/個人ユーザ/クライアントID）](https://github.com/open-dataspaces/L3-identity-component/blob/v1.0.0/docs/tutorials/tutorials.md#2-1-%E8%AA%8D%E8%A8%BC%E6%83%85%E5%A0%B1%E3%81%AE%E4%BD%9C%E6%88%90%E4%BA%8B%E6%A5%AD%E8%80%85%E6%83%85%E5%A0%B1%E5%80%8B%E4%BA%BA%E3%83%A6%E3%83%BC%E3%82%B6%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88id)に記載の事業者情報の登録から[2-1-5. 事業者クライアントシークレット取得](https://github.com/open-dataspaces/L3-identity-component/blob/v1.0.0/docs/tutorials/tutorials.md#2-1-5-%E4%BA%8B%E6%A5%AD%E8%80%85%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88%E3%82%B7%E3%83%BC%E3%82%AF%E3%83%AC%E3%83%83%E3%83%88%E5%8F%96%E5%BE%97)までを実行し、データ提供者とデータ利用者の事業者クライアントをそれぞれ作成してください。
+なお、ここで以降の処理では作成したデータ提供者、利用者のクライアントidはそれぞれ `PROVIDER_ID`, `CONSUMER_ID`として使用します。
+
+##### 認可設定
+
+精算決済サービスの動作確認では、実際にL2を通してインダストリサービスからデータの授受を行う必要があります。そのため、L3,L2のそれぞれに対して認可登録とルート設定が必要になります。本手順では認可制御及びルート設定の一例を示します。
+
+##### OpenFGAへのタプル登録
+
+以下のコマンドを実行して、インダストリサービスに対する認可タプルを OpenFGA のストアに登録します。 コマンド中の変数には以下の値を指定してください。なお、本SDKの[運用構築 OpenFGAストアへのタプル登録](https://github.com/open-dataspaces/SDK-docker-compose#openfga%E3%82%B9%E3%83%88%E3%82%A2%E3%81%B8%E3%81%AE%E3%82%BF%E3%83%97%E3%83%AB%E7%99%BB%E9%8C%B2)を実行済の場合は本手順の実行は不要です。
+
+| 変数 | 値 |
+|---|---|
+| `$USER_STORE_ID` | charts/l2/values.yaml 内の `FGA_STORE_ID` の設定値 |
+
+```
+$ curl -i -X POST http://localhost:8083/stores/$USER_STORE_ID/write \
+  -H "Content-Type: application/json" \
+  -d '{
+  "writes": {
+    "tuple_keys": [
+      {
+	      "user": "group:endpoint-test-get#member",
+	      "relation": "can_access",
+	      "object": "endpoint:test.get"
+		  }
+    ],
+    "on_duplicate": "ignore"
+  }
+}'
+```
+
+##### 事業者への認可付与
+
+次に、インダストリサービスに対する事業者の認可設定をストアに登録するため、以下のコマンドを実行します。 コマンド中の変数には以下の値を指定してください。
+
+
+| 変数 | 値 |
+|---|---|
+| `$USER_STORE_ID` | charts/l2/values.yaml 内の `fgaStoreId` の設定値 |
+| `$USER_MODEL_ID` | charts/l2/values.yaml 内の `fgaModelId` の設定値 |
+| `$PROVIDER_ID` | 事業者クライアント作成（上述）で発行されたデータ提供者の `operator_id` |
+| `$CONSUMER_ID` | 事業者クライアント作成（上述）で発行されたデータ利用者の `operator_id` |
+
+```
+$ curl -i -X POST http://localhost:8083/stores/$USER_STORE_ID/write \
+  -H "Content-Type: application/json" \
+  -d '{
+    "authorization_model_id": "'$USER_MODEL_ID'",
+    "writes": {
+	  	"tuple_keys": [
+	    	{ "user": "user:'$PROVIDER_ID'", "relation": "member", "object": "group:endpoint-test-get" },
+			  { "user": "user:'$CONSUMER_ID'", "relation": "member", "object": "group:endpoint-test-get" }
+ 			 ],
+			"on_duplicate": "ignore"
+		}
+  }'
+```
+
+##### データへのアクセスルートの設定
+
+[インダストリサービス連携方法 L2: Web API転送モジュール](https://github.com/open-dataspaces/SDK-docker-compose#l2-web-api%E8%BB%A2%E9%80%81%E3%83%A2%E3%82%B8%E3%83%A5%E3%83%BC%E3%83%AB-2)を参考に、L2に通信結果のログを残すためのルート設定を実施します。ここではモックサーバに対する通信を GET のみ許可します。以下のコマンドを実行してください。
+
+```
+$ curl -X POST\
+    -H "Content-Type: application/json"\
+    -H "X-API-KEY: your-secret-management-api-key"\
+    -d '{
+    "id": "route02",
+    "uri": "http://mockoon:4011/test",
+    "predicates": [{
+        "name": "Path",
+        "args": {
+        "_genkey_0": "/test**"
+         }
+     },
+      { 
+        "name": "Method",
+        "args": { 
+        "_genkey_0": "GET"
+         }
+      }],
+    "metadata": {
+      "endpointId": "test.get"
+     }    
+    }'\
+    http://localhost:8090/actuator/gateway/routes/route02
+```
+
+#### 精算決済処理
 
 1. 精算・課金／決済データベースのマイグレーションを実行します。
 
@@ -437,51 +531,52 @@ paymentL3ClientSecret
 $ helm upgrade ods .
 ```
 
-3. あらかじめ、動作確認用にダミーの決済サービスと、その決済サービスに紐付けられたデータ提供者・データ利用者をDBに登録します。
-   ここでは簡単のため、データ提供者とデータ利用者に同一のIDを使用します。
-   また、登録したサービスのIDを変数に記憶しておきます。
+3. あらかじめ、動作確認用にダミーの決済サービスと、その決済サービスに紐付けられたデータ提供者・データ利用者をDBに登録します。登録したサービスのIDを変数に記憶しておきます。
 
 ```
 # Pod 名を取得
 $ kubectl get pods -l app=ods-payment-payment-db
 
+# サービスIDを登録
+$ PAYMENT_SERVICE_ID=$(uuidgen -t)
+
 $ kubectl exec -it <ods-payment-payment-db name> -c payment-db -- psql fastapi_db -U postgres -c "INSERT INTO payment_services VALUES ('$PAYMENT_SERVICE_ID', 'test_service', 'http://example.com/')"
 
 $ kubectl exec -it <ods-payment-payment-db name> -c payment-db -- psql fastapi_db -U postgres -c 'SELECT * FROM payment_services'
-          payment_service_id          | payment_service_name | payment_service_url |          created_at          |          updated_at
---------------------------------------+----------------------+---------------------+------------------------------+------------------------------
- 4228ff2a-28f5-11f1-b3c8-00155d45e553 | test_service         | http://example.com/ | 2026-03-26 09:30:14.98468+00 | 2026-03-26 09:30:14.98468+00
+          payment_service_id          | payment_service_name | payment_service_url |          created_at           |          updated_at           
+--------------------------------------+----------------------+---------------------+-------------------------------+-------------------------------
+ 7d3dd20c-79cc-11f1-b3c8-00155ddfb1a3 | test_service         | http://example.com/ | 2026-07-07 06:24:59.320631+00 | 2026-07-07 06:24:59.320631+00
 (1 row)
 
-$ kubectl exec -it <ods-payment-payment-db name> -c payment-db -- psql fastapi_db -U postgres -c "INSERT INTO payment_service_user_registrations VALUES ('$OPERATOR_ID', '$PAYMENT_SERVICE_ID', '$OPERATOR_ID', '$OPERATOR_ID')"
+$ kubectl exec -it <ods-payment-payment-db name> -c payment-db -- psql fastapi_db -U postgres -c "INSERT INTO payment_service_user_registrations VALUES ('$PROVIDER_ID', '$PAYMENT_SERVICE_ID', '$CONSUMER_ID', '$PROVIDER_ID')"
 INSERT 0 1
 
 $ kubectl exec -it <ods-payment-payment-db name> -c payment-db -- psql fastapi_db -U postgres -c '\x' -c 'SELECT * FROM payment_service_user_registrations'
 Expanded display is on.
 -[ RECORD 1 ]-----------+-------------------------------------
-payment_service_user_id | 3d5eebe5-367a-46d9-8c76-5d7c4073fbbb
-payment_service_id      | 4228ff2a-28f5-11f1-b3c8-00155d45e553
-consumer_id             | 3d5eebe5-367a-46d9-8c76-5d7c4073fbbb
-provider_id             | 3d5eebe5-367a-46d9-8c76-5d7c4073fbbb
-company_name            |
-department              |
-customer_name           |
-zip_code                |
-address                 |
-tel_no                  |
-external_buyer_id       |
-external_data           |
-created_at              | 2026-03-26 09:30:27.700757+00
-updated_at              | 2026-03-26 09:30:27.700757+00
+payment_service_user_id | d1522e0f-32d0-49c6-8a69-81afd2aa4197
+payment_service_id      | 7d3dd20c-79cc-11f1-b3c8-00155ddfb1a3
+consumer_id             | bc9f0fb2-debe-4ae9-a01e-0fe2189ee933
+provider_id             | d1522e0f-32d0-49c6-8a69-81afd2aa4197
+company_name            | 
+department              | 
+customer_name           | 
+zip_code                | 
+address                 | 
+tel_no                  | 
+external_buyer_id       | 
+external_data           | 
+created_at              | 2026-07-07 06:28:29.972744+00
+updated_at              | 2026-07-07 06:28:29.972744+00
 ```
 
-4. [L3 参考実装チュートリアル 2-2-1. アクセストークン取得（事業者クライアントID認証）](https://github.com/open-dataspaces/L3-identity-component/blob/v1.0.0/docs/tutorials/tutorials.md#2-2-1-%E3%82%A2%E3%82%AF%E3%82%BB%E3%82%B9%E3%83%88%E3%83%BC%E3%82%AF%E3%83%B3%E5%8F%96%E5%BE%97%E4%BA%8B%E6%A5%AD%E8%80%85%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88id%E8%AA%8D%E8%A8%BC)を実行し、アクセストークンを取得します。宛先のホストには localhost:8080 を、`API-Key`は`API-Key-Sample`を指定してください。
+4. [L3 参考実装チュートリアル 2-2-1. アクセストークン取得（事業者クライアントID認証）](https://github.com/open-dataspaces/L3-identity-component/blob/v1.0.0/docs/tutorials/tutorials.md#2-2-1-%E3%82%A2%E3%82%AF%E3%82%BB%E3%82%B9%E3%83%88%E3%83%BC%E3%82%AF%E3%83%B3%E5%8F%96%E5%BE%97%E4%BA%8B%E6%A5%AD%E8%80%85%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88id%E8%AA%8D%E8%A8%BC)を実行し、アクセストークンを取得します。宛先のホストには localhost:8080 を、`API-Key`は`API-Key-Sample`を指定してください。以降の処理ではデータ提供者のアクセストークンを `PROVIDER_ACCESS_TOKEN`, データ利用者のアクセストークンを`CONSUMER_ACCESS_TOKEN` とします。
 
-#### 利用料モデル登録（提供者）
+##### 利用料モデル登録（提供者）
 
-今回は例として、利用者と提供者に同一のIDを使用します。
 以下のリクエストを送信し、精算・課金／決済サービスに利用料モデルを登録します。  
 なお、本手順でもポートフォワードを行い動作を実施しています。
+
 ```
 $ kubectl port-forward svc/ods-payment-payment-app 8001:8001
 ```
@@ -489,20 +584,22 @@ $ kubectl port-forward svc/ods-payment-payment-app 8001:8001
 ```
 $ curl -X POST \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Authorization: Bearer $PROVIDER_ACCESS_TOKEN" \
   -H "X-TrackingId: $(uuidgen -t)" \
   -H "x-payment-api-key: payment-api-key" \
+  -H "Accept-Language: ja-JP" \
+  -H "User-Agent: payment-test" \
   -d '{
-    "fee_model_name": "通常モデル",
-    "price": 1000,
-    "tax_classification": "taxable",
-    "tax_rate": 0.10,
-    "provider_id": "'"$OPERATOR_ID"'",
-    "consumer_id": "'"$OPERATOR_ID"'",
+    "valid_from": "2026-07-01T00:00:00Z",
+    "provider_id": "'"$PROVIDER_ID"'",
+    "consumer_id": "'"$CONSUMER_ID"'",
     "data_id": "'"I0101"'",
-    "payment_service_id": "550e8400-e29b-41d4-a716-446655440000",
-    "valid_from": "'$(date -Iseconds -u)'",
-    "is_active": "true",
+    "payment_service_id": "'"$PAYMENT_SERVICE_ID"'",
+    "fee_model_name": "通常モデル",
+    "price": "1000.00",
+    "tax_classification": "taxable",
+    "tax_rate": "0.10",
+    "is_active": true,
     "version": 1
   }' \
   localhost:8001/api/v1/fee-model
@@ -512,32 +609,34 @@ $ curl -X POST \
 
 ```
 {
-  "created_at":"2026-03-26T09:48:51.063694Z",
-  "updated_at":"2026-03-26T09:48:51.063694Z",
-  "valid_from":"2026-03-26T09:48:50Z",
+  "created_at":"2026-07-07T06:35:30.842184Z",
+  "updated_at":"2026-07-07T06:35:30.842184Z",
+  "valid_from":"2026-07-01T00:00:00Z",
   "is_active":true,
   "version":1,
   "storage_type":"provider_env",
   "storage_key":"",
   "valid_to":null,
-  "provider_id":"3d5eebe5-367a-46d9-8c76-5d7c4073fbbb","consumer_id":"3d5eebe5-367a-46d9-8c76-5d7c4073fbbb",
+  "provider_id":"d1522e0f-32d0-49c6-8a69-81afd2aa4197",
+  "consumer_id":"bc9f0fb2-debe-4ae9-a01e-0fe2189ee933",
   "data_id":"I0101",
-  "payment_service_id":"4228ff2a-28f5-11f1-b3c8-00155d45e553",
+  "payment_service_id":"7d3dd20c-79cc-11f1-b3c8-00155ddfb1a3",
   "fee_model_name":"通常モデル",
   "price":"1000.00",
   "tax_classification":"taxable",
   "tax_rate":"0.1000",
-  "fee_model_id":"1f6fb614-f513-4f44-ba12-09af657de32b"}
+  "fee_model_id":"20714678-b743-405a-af44-0010fa7fc0c0"
+}
 ```
 
-#### 利用料モデル一覧取得（提供者）
+##### 利用料モデル一覧取得（提供者）
 
 登録した利用料モデルは、以下のリクエストで確認できます。
 
 ```
 $ curl -s \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Authorization: Bearer $PROVIDER_ACCESS_TOKEN" \
   -H "X-TrackingId: $(uuidgen -t)" \
   -H "x-payment-api-key: payment-api-key" \
   localhost:8001/api/v1/fee-model
@@ -548,42 +647,73 @@ $ curl -s \
 ```
 {
   "models":[
-    {"created_at":"2026-03-26T09:48:51.063694Z",
-    "updated_at":"2026-03-26T09:48:51.063694Z",
-    "valid_from":"2026-03-26T09:48:50Z",
-    "is_active":true,"version":1,
-    "storage_type":"provider_env",
-    "storage_key":"","valid_to":null,
-    "provider_id":"3d5eebe5-367a-46d9-8c76-5d7c4073fbbb",
-    "consumer_id":"3d5eebe5-367a-46d9-8c76-5d7c4073fbbb",
-    "data_id":"I0101",
-    "payment_service_id":"4228ff2a-28f5-11f1-b3c8-00155d45e553",
-    "fee_model_name":"通常モデル",
-    "price":"1000.00",
-    "tax_classification":"taxable",
-    "tax_rate":"0.1000",
-    "fee_model_id":"1f6fb614-f513-4f44-ba12-09af657de32b"
+    {
+      "created_at":"2026-07-07T06:35:30.842184Z",
+      "updated_at":"2026-07-07T06:35:30.842184Z",
+      "valid_from":"2026-07-01T00:00:00Z",
+      "is_active":true,
+      "version":1,
+      "storage_type":"provider_env",
+      "storage_key":"",
+      "valid_to":null,
+      "provider_id":"d1522e0f-32d0-49c6-8a69-81afd2aa4197",
+      "consumer_id":"bc9f0fb2-debe-4ae9-a01e-0fe2189ee933",
+      "data_id":"I0101",
+      "payment_service_id":"7d3dd20c-79cc-11f1-b3c8-00155ddfb1a3",
+      "fee_model_name":"通常モデル",
+      "price":"1000.00",
+      "tax_classification":"taxable",
+      "tax_rate":"0.1000",
+      "fee_model_id":"20714678-b743-405a-af44-0010fa7fc0c0"
     }
   ]
 }
 ```
 
-#### データ交換状態登録（利用者・提供者）
+##### データ交換の実行（利用者）
 
-データ交換が終了したタイミングで、利用者・提供者の双方から取引の実績を精算・課金／決済サービスに登録します。
-対象となるデータ交換は、交換時に使用した `X-TrackingId` ヘッダ値で識別します。この例ではダミーの値を使用します。
+事前準備で登録したルートを利用してデータ交換を行います。  
+精算決済で管理するデータ交換は、交換時に使用する `X-TrackingId` ヘッダ値で識別します。この例ではダミーの値を使用します。このIDは後の処理でも利用するため、環境変数へ格納します。
+実行するコマンドは以下です。
 
 ```
 $ export TRACKING_ID=$(uuidgen -t)
+$ curl -X GET "http://localhost:8090/test" \
+  -H 'api-key: 2dfd3409-ce01-4451-96fa-7e10c9681422y' \
+  -H "Authorization: bearer $CONSUMER_ACCESS_TOKEN" \
+  -H "X-TrackingID: $TRACKING_ID" \
+  -H 'X-ODS-UserId: 112233' \
+  -H "Content-Type: application/json" \
+  -H "Prefer: return=representation"
+```
+
+/testエンドポイントから、以下のようなレスポンスが返却されれば完了です。
+
+```
+{
+  "message": "Request successfully delivered!"
+}
+```
+
+##### データ交換状態登録（利用者・提供者）
+
+データ交換が終了したタイミングで、利用者・提供者の双方から取引の実績を精算・課金／決済サービスに登録します。
+対象となるデータ交換は、交換時に使用した `X-TrackingId` ヘッダ値で識別します。
+
+##### 提供者の実行
+
+```
 $ curl -X POST \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Authorization: Bearer $PROVIDER_ACCESS_TOKEN" \
   -H "X-TrackingId: $(uuidgen -t)" \
   -H "x-payment-api-key: payment-api-key" \
+  -H "Accept-Language: ja-JP" \
+  -H "User-Agent: payment-test" \
   -d '{
     "tracking_id": "'"$TRACKING_ID"'",
-    "provider_id": "'"$OPERATOR_ID"'",
-    "consumer_id": "'"$OPERATOR_ID"'",
+    "provider_id": "'"$PROVIDER_ID"'",
+    "consumer_id": "'"$CONSUMER_ID"'",
     "data_id_list": ["I0101"],
     "completed_at": "'$(date -Iseconds -u)'",
     "status": "completed"
@@ -597,18 +727,136 @@ $ curl -X POST \
 {"status":"success","detail":"Data exchange status registered"}
 ```
 
-#### 支払予定額取得（利用者）
+##### 利用者の実行
+
+```
+$ curl -X POST \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $CONSUMER_ACCESS_TOKEN" \
+  -H "X-TrackingId: $(uuidgen -t)" \
+  -H "x-payment-api-key: payment-api-key" \
+  -H "Accept-Language: ja-JP" \
+  -H "User-Agent: payment-test" \
+  -d '{
+    "tracking_id": "'"$TRACKING_ID"'",
+    "provider_id": "'"$PROVIDER_ID"'",
+    "consumer_id": "'"$CONSUMER_ID"'",
+    "data_id_list": ["I0101"],
+    "completed_at": "'$(date -Iseconds -u)'",
+    "status": "completed"
+  }' \
+  localhost:8001/api/v1/data-exchange/status
+```
+
+登録に成功すると、以下のレスポンスが返却されます。
+
+```
+{"status":"success","detail":"Data exchange completed for tracking_id: 345dcce8-79ce-11f1-b3c8-00155ddfb1a3"}
+```
+
+##### L2Transactionチェック
+
+精算決済機能では、AWS S3のバケットからL2のログを抽出し整合性の確認を行います。
+本SDKでは1時間毎にL2のログをSiloのバケットに保存しています。すぐに確認を行う場合は、fluentdを再起動して強制的にローテーションを行ってください。実行手順は以下です。
+
+```
+$ kubectl rollout restart deploy/ods-logging-fluentd
+```
+
+本SDKでは整合性チェックを定期実行するため、[ドキュメント](https://github.com/open-dataspaces/DCS-Payment/blob/v1.0.0/cronjob/docs/feature-spec-checkl2log.md)で示されているようにCrnJobで定義し散ます。
+本手順ではS3互換のSiloに対してL2Transactionチェックを一度実行する例を示します。
+
+```
+$ kubectl create job --from=cronjob/ods-payment-checkl2log ods-payment-checkl2log-manual-$(date +%s)
+```
+
+実行結果は以下のコマンドを実行することで確認できます。
+
+```
+$ kubectl logs job/<ods-payment-checkl2log-manual name>
+```
+
+ログとして以下のような出力を確認できます
+
+```
+2026-07-07T06:55:12+0000 [INFO] === CronJob 開始 ===
+2026-07-07T06:55:12+0000 [INFO] 対象バケット: pj-a-sbx / プレフィックス: applogs/
+2026-07-07T06:55:12+0000 [INFO] 対象日付: 2026-07-06, 2026-07-07 (JST)
+2026-07-07T06:55:12+0000 [INFO] DB から tracking_id を取得中 (2026-07-06 〜 2026-07-07)
+2026-07-07T06:55:12+0000 [INFO] DB から 1 件の tracking_id を取得
+2026-07-07T06:55:12+0000 [DEBUG] DB 接続クローズ
+2026-07-07T06:55:13+0000 [INFO] --- 日付: 20260706 の処理を開始 (prefix=applogs/20260706) ---
+2026-07-07T06:55:13+0000 [DEBUG] list_objects_v2 呼び出し: {'Bucket': 'pj-a-sbx', 'Prefix': 'applogs/20260706'}
+2026-07-07T06:55:13+0000 [DEBUG] list_objects_v2 レスポンス: KeyCount=0, IsTruncated=False
+2026-07-07T06:55:13+0000 [DEBUG] 該当オブジェクトなし
+2026-07-07T06:55:13+0000 [INFO] 日付 20260706 完了: 0 ファイル処理
+2026-07-07T06:55:13+0000 [INFO] --- 日付: 20260707 の処理を開始 (prefix=applogs/20260707) ---
+2026-07-07T06:55:13+0000 [DEBUG] list_objects_v2 呼び出し: {'Bucket': 'pj-a-sbx', 'Prefix': 'applogs/20260707'}
+2026-07-07T06:55:13+0000 [DEBUG] list_objects_v2 レスポンス: KeyCount=8, IsTruncated=False
+2026-07-07T06:55:13+0000 [INFO] [ファイル 1] 取得開始: applogs/20260707-01_0.gz (size=165712 bytes)
+2026-07-07T06:55:13+0000 [INFO] [ファイル 1] 処理完了: applogs/20260707-01_0.gz (6470 行)
+2026-07-07T06:55:13+0000 [INFO] [ファイル 2] 取得開始: applogs/20260707-02_0.gz (size=5989 bytes)
+2026-07-07T06:55:13+0000 [INFO] [ファイル 2] 処理完了: applogs/20260707-02_0.gz (265 行)
+2026-07-07T06:55:13+0000 [INFO] [ファイル 3] 取得開始: applogs/20260707-03_0.gz (size=673 bytes)
+2026-07-07T06:55:13+0000 [INFO] [ファイル 3] 処理完了: applogs/20260707-03_0.gz (16 行)
+2026-07-07T06:55:13+0000 [INFO] [ファイル 4] 取得開始: applogs/20260707-04_0.gz (size=14326 bytes)
+2026-07-07T06:55:13+0000 [INFO] [ファイル 4] 処理完了: applogs/20260707-04_0.gz (645 行)
+2026-07-07T06:55:13+0000 [INFO] [ファイル 5] 取得開始: applogs/20260707-05_0.gz (size=14215 bytes)
+2026-07-07T06:55:13+0000 [INFO] [ファイル 5] 処理完了: applogs/20260707-05_0.gz (652 行)
+2026-07-07T06:55:13+0000 [INFO] [ファイル 6] 取得開始: applogs/20260707-05_1.gz (size=14215 bytes)
+2026-07-07T06:55:13+0000 [INFO] [ファイル 6] 処理完了: applogs/20260707-05_1.gz (652 行)
+2026-07-07T06:55:13+0000 [INFO] [ファイル 7] 取得開始: applogs/20260707-06_0.gz (size=45910 bytes)
+2026-07-07T06:55:13+0000 [INFO] [ファイル 7] 処理完了: applogs/20260707-06_0.gz (1135 行)
+2026-07-07T06:55:13+0000 [INFO] [ファイル 8] 取得開始: applogs/20260707-06_1.gz (size=45910 bytes)
+2026-07-07T06:55:13+0000 [INFO] [ファイル 8] 処理完了: applogs/20260707-06_1.gz (1135 行)
+2026-07-07T06:55:13+0000 [INFO] 日付 20260707 完了: 8 ファイル処理
+2026-07-07T06:55:13+0000 [INFO] S3 ログ取得完了: 合計 8 ファイル / 10970 行
+2026-07-07T06:55:13+0000 [INFO] === tracking_id 照合開始 (1 件) ===
+2026-07-07T06:55:13+0000 [DEBUG] gatewayResponse 検出: trackingId=345dcce8-79ce-11f1-b3c8-00155ddfb1a3, statusCode=200
+2026-07-07T06:55:13+0000 [INFO] gatewayResponse パース完了: 1 件の trackingId → statusCode マッピングを取得
+2026-07-07T06:55:13+0000 [INFO] 照合結果: ログに存在=1 件, 存在しない=0 件
+2026-07-07T06:55:13+0000 [INFO]   statusCode=200: 1 件
+2026-07-07T06:55:13+0000 [INFO] 全ての tracking_id がログに存在します
+2026-07-07T06:55:13+0000 [INFO] l2_http_status='200' に更新: 1 件 (tracking_id 1 件)
+2026-07-07T06:55:13+0000 [INFO] l2_http_status の更新完了
+2026-07-07T06:55:13+0000 [DEBUG] DB 接続クローズ
+2026-07-07T06:55:13+0000 [INFO]   tracking_id 総数: 1
+2026-07-07T06:55:13+0000 [INFO]   ログに存在:       1
+2026-07-07T06:55:13+0000 [INFO]   ログに未検出:     0
+2026-07-07T06:55:13+0000 [INFO] === settlement_status 更新処理 開始 ===
+2026-07-07T06:55:13+0000 [INFO] settlement_status を 'settled' に更新: 1 件
+2026-07-07T06:55:13+0000 [INFO] settlement_status の更新完了
+2026-07-07T06:55:13+0000 [DEBUG] DB 接続クローズ
+2026-07-07T06:55:13+0000 [INFO] === 請求確定/キャンセル処理 開始 ===
+2026-07-07T06:55:13+0000 [INFO] === transactionレコード ステータス一覧 (最新50件) ===
+2026-07-07T06:55:13+0000 [INFO] 請求確定依頼対象: なし
+2026-07-07T06:55:13+0000 [INFO] 取引キャンセル対象（L2ステータス異常）: なし
+2026-07-07T06:55:13+0000 [DEBUG] DB 接続クローズ
+2026-07-07T06:55:13+0000 [INFO] tracking_id=NULL の未完了レコードを取得中
+2026-07-07T06:55:13+0000 [INFO] tracking_id=NULL の未完了レコード: 0 件
+2026-07-07T06:55:13+0000 [DEBUG] DB 接続クローズ
+2026-07-07T06:55:13+0000 [INFO] 取引キャンセル対象（24時間経過・未完了）: なし
+2026-07-07T06:55:13+0000 [INFO] === 請求確定/キャンセル処理 完了 ===
+```
+
+L2Transactionチェックは、保存済みの各ログレコードに対して `textPayload` フィールドを参照し、その中に含まれる `gatewayResponse` の `trackingId` および `statusCode` を抽出して精算決済の整合性確認を行います。
+一方L2のログ本文はフィールドを持たず、fluentd 経由でログレコード化される際に `log` フィールドに格納されるため、初期状態では `textPayload` フィールドは付与されません。
+本SDKでは fluentd にて各ログレコードの `log` フィールドを `textPayload` として複製しSiloに保存しています。
+
+##### 支払予定額取得（利用者）
 
 利用者は以下のリクエストで、当日分の支払予定額を確認できます。
 
 ```
 $ curl -X POST \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Authorization: Bearer $CONSUMER_ACCESS_TOKEN" \
   -H "X-TrackingId: $(uuidgen -t)" \
   -H "x-payment-api-key: payment-api-key" \
+  -H "Accept-Language: ja-JP" \
+  -H "User-Agent: payment-test" \
   -d '{
-    "provider_id": "'"$OPERATOR_ID"'",
+    "provider_id": "'"$PROVIDER_ID"'",
     "start_date": "'$(date -I)'",
     "end_date": "'$(date -I -d'+1 day')'"
   }' \
@@ -619,37 +867,37 @@ $ curl -X POST \
 
 ```
 {
-  "payment_details": [
+  "payment_details":[
     {
-      "tracking_id": "93c19b42-1155-11f1-9c92-00155d72de61",
-      "fee_model_id": "1f6fb614-f513-4f44-ba12-09af657de32b",
-      "payment_service_id": "4228ff2a-28f5-11f1-b3c8-00155d45e553",
-      "provider_id":"3d5eebe5-367a-46d9-8c76-5d7c4073fbbb",
-      "consumer_id":"3d5eebe5-367a-46d9-8c76-5d7c4073fbbb",
-      "data_id_list": [
-        "I0101"
-      ],
-      "completed_at": "2026-03-26T09:53:50Z",
-      "amount": 1100.0,
-      "tax_rate": 0.1
+      "tracking_id":"345dcce8-79ce-11f1-b3c8-00155ddfb1a3",
+      "fee_model_id":"20714678-b743-405a-af44-0010fa7fc0c0",
+      "payment_service_id":"7d3dd20c-79cc-11f1-b3c8-00155ddfb1a3",
+      "provider_id":"d1522e0f-32d0-49c6-8a69-81afd2aa4197",
+      "consumer_id":"bc9f0fb2-debe-4ae9-a01e-0fe2189ee933",
+      "data_id_list":["I0101"],
+      "completed_at":"2026-07-07T06:42:18Z",
+      "amount":1100.0,
+      "tax_rate":0.1
     }
   ],
-  "total_amount": 1100.0
+  "total_amount":1100.0
 }
 ```
 
-#### 請求予定額取得（提供者）
+##### 請求予定額取得（提供者）
 
 提供者は以下のリクエストで、当日分の請求予定額を確認できます。
 
 ```
 $ curl -X POST \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $ACCESS_TOKEN" \
+  -H "Authorization: Bearer $PROVIDER_ACCESS_TOKEN" \
   -H "X-TrackingId: $(uuidgen -t)" \
   -H "x-payment-api-key: payment-api-key" \
+  -H "Accept-Language: ja-JP" \
+  -H "User-Agent: payment-test" \
   -d '{
-    "consumer_id": "'"$OPERATOR_ID"'",
+    "consumer_id": "'"$CONSUMER_ID"'",
     "start_date": "'$(date -I)'",
     "end_date": "'$(date -I -d'+1 day')'"
   }' \
@@ -660,22 +908,71 @@ $ curl -X POST \
 
 ```
 {
-  "billing_details": [
+  "billing_details":[
     {
-      "tracking_id": "93c19b42-1155-11f1-9c92-00155d72de61",
-      "fee_model_id": "1f6fb614-f513-4f44-ba12-09af657de32b",
-      "payment_service_id": "4228ff2a-28f5-11f1-b3c8-00155d45e553",
-      "provider_id":"3d5eebe5-367a-46d9-8c76-5d7c4073fbbb",
-      "consumer_id":"3d5eebe5-367a-46d9-8c76-5d7c4073fbbb",
-      "data_id_list": [
-        "I0101"
-      ],
-      "completed_at": "2026-03-26T09:53:50Z",
-      "amount": 1100.0,
-      "tax_rate": 0.1
+      "tracking_id":"345dcce8-79ce-11f1-b3c8-00155ddfb1a3",
+      "fee_model_id":"20714678-b743-405a-af44-0010fa7fc0c0",
+      "payment_service_id":"7d3dd20c-79cc-11f1-b3c8-00155ddfb1a3",
+      "provider_id":"d1522e0f-32d0-49c6-8a69-81afd2aa4197",
+      "consumer_id":"bc9f0fb2-debe-4ae9-a01e-0fe2189ee933",
+      "data_id_list":["I0101"],
+      "completed_at":"2026-07-07T06:42:18Z",
+      "amount":1100.0,"tax_rate":0.1
     }
   ],
-  "total_amount": 1100.0
+  "total_amount":1100.0
+}
+```
+
+##### 決裁状態取得（提供者）
+
+提供者は以下のリクエストで、現在の決済状態を確認できます。
+
+```
+$ curl -X POST \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer $PROVIDER_ACCESS_TOKEN" \
+  -H "X-TrackingId: $(uuidgen -t)" \
+  -H "x-payment-api-key: payment-api-key" \
+  -H "Accept-Language: ja-JP" \
+  -H "User-Agent: payment-test" \
+  -d '{
+    "consumer_id":"'"$CONSUMER_ID"'",
+    "start_date":"'$(date -I)'",
+    "end_date":"'$(date -I -d'+1 day')'",
+    "settlement_status":"settled"
+  }' \
+  localhost:8001/api/v1/data-exchange/settlement/transactions
+```
+
+成功すると、以下のようなレスポンスが返却されます。
+
+```
+{
+  "transactions":[
+    {
+      "transaction_id":"450760b0-2e11-444d-9ace-4402b9514f25",
+      "tracking_id":"345dcce8-79ce-11f1-b3c8-00155ddfb1a3",
+      "external_transaction_id":null,
+      "provider_id":"d1522e0f-32d0-49c6-8a69-81afd2aa4197",
+      "consumer_id":"bc9f0fb2-debe-4ae9-a01e-0fe2189ee933",
+      "data_id":"I0101",
+      "snapshot_price":"1000.00",
+      "snapshot_tax_rate":"0.1000",
+      "snapshot_tax_classification":"taxable",
+      "calculated_amount":"1100.00",
+      "consumer_exchange_status":"completed",
+      "provider_exchange_status":"completed",
+      "l2_http_status":"200",
+      "order_details":null,
+      "request_date":null,
+      "payment_deadline":null,
+      "paid_at":null,
+      "created_at":"2026-07-07T06:42:18Z",
+      "updated_at":"2026-07-07T06:55:13.682959Z"
+    }
+  ],
+  "total_count":1
 }
 ```
 
@@ -693,13 +990,13 @@ PVC内のデフォルトの出力先は以下です。
 | ------------------ | ---- |
 | data/pj-a-sbx/applogs | ログファイルは1時間ごとにローテーションされる |
 
-こちらのログについては直接ディレクトリを参照する他に、MinIOのコンソールにアクセスすることでブラウザからも確認できます。
+こちらのログについては直接ディレクトリを参照する他に、Siloのコンソールにアクセスすることでブラウザからも確認できます。
 http://localhost:9001/login からアクセスしユーザ名とパスワードを入力します。
 
 なお、本手順実行前にポートフォワードを実施してください。
 
 ```
-$ kubectl port-forward svc/ods-logging-minio 9001:9001
+$ kubectl port-forward svc/ods-logging-silo 9001:9001
 ```
 
 ![ログイン画面](images/MinIO_login.png)
@@ -708,7 +1005,7 @@ $ kubectl port-forward svc/ods-logging-minio 9001:9001
 - パスワード: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 
 これらのユーザ名、パスワードはcharts/logging/values.yaml を編集することで変更可能です。　
-なお変更した場合、charts/logging/files/fluentd.conf 内のMinIO設定を編集してください。
+なお変更した場合、charts/logging/files/fluentd.conf 内のSilo設定を編集してください。
 
 ログインに成功すると保存されているログを確認することができます。階層構造はディレクトリ構造にならい「pj-a-sbx/applogs」になっています。
 

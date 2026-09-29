@@ -25,7 +25,8 @@ spec:
       - name: payment-app
         image: "{{ .Values.paymentApp.image.repository }}:{{ .Values.paymentApp.image.tag }}"
         imagePullPolicy: {{ default .Values.global.imagePullPolicy .Values.paymentApp.image.pullPolicy }}
-        args: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+        command: ["python", "-m", "uvicorn"]
+        args: ["app.main:app", "--host", "0.0.0.0", "--port", "8000"]
         ports:
         - name: http
           containerPort: {{ .Values.paymentApp.service.targetPort }}
