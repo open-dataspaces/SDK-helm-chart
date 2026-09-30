@@ -12,6 +12,9 @@
 * マシンスペック: Core i7-1265U, 16GiB Mem, 500GB SSD
 * OS: Windows 11 + WSL2 (Ubuntu 24.04)
 * Docker Client: 28.1.1-rd, Server: 27.3.1, Compose: 2.37.1
+* Helm： v4.2.3+g43e8b7f
+* kubectl client: v1.29.0
+* kind: v0.22.0
 
 ## リポジトリ構成
 
@@ -98,7 +101,7 @@ $ helm uninstall ods
 
 各コンポーネントをHelm Chartで起動する場合は事前にKubernetes環境にimageを取り込む必要があります。
 なお、本Helm Chartでは[Docker Compose版のデプロイ定義ファイル](https://github.com/open-dataspaces/SDK-docker-compose)内でビルドされるimageと同様のものを想定しています。  
-imageをビルドする場合 Docker Compose を取得し、[各コンポーネントの初期設定](https://github.com/open-dataspaces/SDK-docker-compose?tab=readme-ov-file#%E5%90%84%E3%82%B3%E3%83%B3%E3%83%9D%E3%83%BC%E3%83%8D%E3%83%B3%E3%83%88%E3%81%AE%E5%88%9D%E6%9C%9F%E8%A8%AD%E5%AE%9A)の公式リポジトリからコピー後、以下のコマンドを実行してください。
+imageをビルドする場合 Docker Compose を取得し、[各コンポーネントの初期設定](https://github.com/open-dataspaces/SDK-docker-compose?tab=readme-ov-file#%E5%90%84%E3%82%B3%E3%83%B3%E3%83%9D%E3%83%BC%E3%83%8D%E3%83%B3%E3%83%88%E3%81%AE%E5%88%9D%E6%9C%9F%E8%A8%AD%E5%AE%9A)の公式リポジトリからコピー後、 Docker Compose のルートディレクトリで以下のコマンドを実行してください。
 
 ```
 $ docker build . -f ./l3/Dockerfile -t openfga-authzen:latest
@@ -198,7 +201,7 @@ $ curl -X PUT "http://localhost:8082/admin/realms/master" \
 
 ### 運用開始に向けた各種データ設定
 
-[参考実装チュートリアル 2-1. 認証情報の作成（事業者情報/個人ユーザ/クライアントID）](https://github.com/open-dataspaces/L3-identity-component/blob/v1.0.0/docs/tutorials/tutorials.md#2-1-%E8%AA%8D%E8%A8%BC%E6%83%85%E5%A0%B1%E3%81%AE%E4%BD%9C%E6%88%90%E4%BA%8B%E6%A5%AD%E8%80%85%E6%83%85%E5%A0%B1%E5%80%8B%E4%BA%BA%E3%83%A6%E3%83%BC%E3%82%B6%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88id)に記載の手順に従い、事業者情報の登録から[2-1-5. 事業者クライアントシークレット取得](https://github.com/open-dataspaces/L3-identity-component/blob/v1.0.0/docs/tutorials/tutorials.md#2-1-5-%E4%BA%8B%E6%A5%AD%E8%80%85%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88%E3%82%B7%E3%83%BC%E3%82%AF%E3%83%AC%E3%83%83%E3%83%88%E5%8F%96%E5%BE%97)までを実行してください。宛先のホストには localhost:8080 を指定してください。また、本手順で必要な `$SYSTEM_CLIENT_SECRET` には、l3/docker-compose.yml の以下の設定値を、`API-Key`は`API-Key-Sample`を、`client_id`には`system-auth-sample`指定してください。
+[参考実装チュートリアル 2-1. 認証情報の作成（事業者情報/個人ユーザ/クライアントID）](https://github.com/open-dataspaces/L3-identity-component/blob/v1.0.0/docs/tutorials/tutorials.md#2-1-%E8%AA%8D%E8%A8%BC%E6%83%85%E5%A0%B1%E3%81%AE%E4%BD%9C%E6%88%90%E4%BA%8B%E6%A5%AD%E8%80%85%E6%83%85%E5%A0%B1%E5%80%8B%E4%BA%BA%E3%83%A6%E3%83%BC%E3%82%B6%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88id)に記載の手順に従い、事業者情報の登録から[2-1-5. 事業者クライアントシークレット取得](https://github.com/open-dataspaces/L3-identity-component/blob/v1.0.0/docs/tutorials/tutorials.md#2-1-5-%E4%BA%8B%E6%A5%AD%E8%80%85%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88%E3%82%B7%E3%83%BC%E3%82%AF%E3%83%AC%E3%83%83%E3%83%88%E5%8F%96%E5%BE%97)までを実行してください。宛先のホストには localhost:8080 を指定してください。また、本手順で必要な `$SYSTEM_CLIENT_SECRET` には、`charts/l3/values.yaml` の以下の設定値を指定し、`API-Key`は`API-Key-Sample`を、`client_id`には`system-auth-sample`指定してください。
 
 ```
 l3KeycloakIntrospectClientSecret
