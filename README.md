@@ -104,6 +104,7 @@ imageをビルドする場合 Docker Compose を取得し、[各コンポーネ�
 $ docker build . -f ./l3/Dockerfile -t openfga-authzen:latest
 $ docker build . -f ./l3/Dockerfile-local -t l3-app:latest
 $ docker build . -f ./l2/Dockerfile -t ods/dp-http:latest
+$ docker build . -f ./logging/Dockerfile -t fluentd:1.19.1
 $ docker build . -f ./payment/Dockerfile -t payment-app:latest
 $ docker build . -f ./payment/Dockerfile.checkl2log -t ods-payment-checkl2log:latest
 ```
@@ -111,7 +112,7 @@ $ docker build . -f ./payment/Dockerfile.checkl2log -t ods-payment-checkl2log:la
 上記の手順でビルドしたimageをKubernetes環境に取り込む例として、kindを使用する場合の例を示します。なお、クラスタ名はods、ネームスペースはdefaultとしています。
 
 ```
-$ kind load docker-image ods/dp-http:latest openfga-authzen:latest l3-app:latest payment-app:latest ods-payment-checkl2log:latest --name ods
+$ kind load docker-image ods/dp-http:latest openfga-authzen:latest l3-app:latest payment-app:latest fluentd:1.19.1 ods-payment-checkl2log:latest --name ods
 ```
 
 環境の準備が完了したら、リポジトリのトップレベルに配置されている Chart.yaml ファイルを使ってすべてのサービスを起動します。
