@@ -12,7 +12,7 @@
 * マシンスペック: Core i7-1265U, 16GiB Mem, 500GB SSD
 * OS: Windows 11 + WSL2 (Ubuntu 24.04)
 * Docker Client: 28.1.1-rd, Server: 27.3.1, Compose: 2.37.1
-* Helm： v4.2.3+g43e8b7f
+* Helm: v4.2.3+g43e8b7f
 * kubectl client: v1.29.0
 * kind: v0.22.0
 
