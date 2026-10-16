@@ -392,7 +392,7 @@ $ curl -X POST\
     ```
     $ curl -X POST "http://localhost:8090/test" \
       -H 'api-key: 2dfd3409-ce01-4451-96fa-7e10c9681422y' \
-      -H "Authorization: bearer $ACCESS_TOKEN" \
+      -H "Authorization: Bearer $ACCESS_TOKEN" \
       -H 'X-ODS-UserId: 112233' \
       -H "Content-Type: application/json" \
       -H "Prefer: return=representation" \
@@ -414,7 +414,7 @@ $ curl -X POST\
 ##### 事業者クライアント作成
 
 精算決済サービスの動作には、データ提供者とデータ利用者の二つの事業者クライアントが必要になります。[参考実装チュートリアル 2-1. 認証情報の作成（事業者情報/個人ユーザ/クライアントID）](https://github.com/open-dataspaces/L3-identity-component/blob/v1.0.0/docs/tutorials/tutorials.md#2-1-%E8%AA%8D%E8%A8%BC%E6%83%85%E5%A0%B1%E3%81%AE%E4%BD%9C%E6%88%90%E4%BA%8B%E6%A5%AD%E8%80%85%E6%83%85%E5%A0%B1%E5%80%8B%E4%BA%BA%E3%83%A6%E3%83%BC%E3%82%B6%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88id)に記載の事業者情報の登録から[2-1-5. 事業者クライアントシークレット取得](https://github.com/open-dataspaces/L3-identity-component/blob/v1.0.0/docs/tutorials/tutorials.md#2-1-5-%E4%BA%8B%E6%A5%AD%E8%80%85%E3%82%AF%E3%83%A9%E3%82%A4%E3%82%A2%E3%83%B3%E3%83%88%E3%82%B7%E3%83%BC%E3%82%AF%E3%83%AC%E3%83%83%E3%83%88%E5%8F%96%E5%BE%97)までを実行し、データ提供者とデータ利用者の事業者クライアントをそれぞれ作成してください。
-なお、ここで以降の処理では作成したデータ提供者、利用者のクライアントidはそれぞれ `PROVIDER_ID`, `CONSUMER_ID`として使用します。
+なお、以降の処理では作成したデータ提供者、利用者のクライアントIDはそれぞれ `PROVIDER_ID`, `CONSUMER_ID`として使用します。
 
 ##### 認可設定
 
@@ -681,7 +681,7 @@ $ curl -s \
 $ export TRACKING_ID=$(uuidgen -t)
 $ curl -X GET "http://localhost:8090/test" \
   -H 'api-key: 2dfd3409-ce01-4451-96fa-7e10c9681422y' \
-  -H "Authorization: bearer $CONSUMER_ACCESS_TOKEN" \
+  -H "Authorization: Bearer $CONSUMER_ACCESS_TOKEN" \
   -H "X-TrackingID: $TRACKING_ID" \
   -H 'X-ODS-UserId: 112233' \
   -H "Content-Type: application/json" \
