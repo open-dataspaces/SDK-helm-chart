@@ -1,0 +1,69 @@
+{{- if .Values.paymentCheckL2Log.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "payment.checkL2LogName" . }}
+spec:
+  schedule: {{ .Values.paymentCheckL2Log.schedule | quote }}
+  concurrencyPolicy: {{ .Values.paymentCheckL2Log.concurrencyPolicy }}
+  successfulJobsHistoryLimit: {{ .Values.paymentCheckL2Log.successfulJobsHistoryLimit }}
+  failedJobsHistoryLimit: {{ .Values.paymentCheckL2Log.failedJobsHistoryLimit }}
+  startingDeadlineSeconds: {{ .Values.paymentCheckL2Log.startingDeadlineSeconds }}
+  jobTemplate:
+    spec:
+      backoffLimit: {{ .Values.paymentCheckL2Log.backoffLimit }}
+      template:
+        metadata:
+          labels:
+            app: {{ include "payment.checkL2LogName" . }}
+          annotations:
+            checksum/checkl2log-secret: {{ include (print $.Template.BasePath "/checkl2log-secret.yaml") . | sha256sum }}
+        spec:
+          restartPolicy: {{ .Values.paymentCheckL2Log.restartPolicy }}
+          {{- with .Values.paymentCheckL2Log.podSecurityContext }}
+          securityContext:
+{{ toYaml . | nindent 12 }}
+          {{- end }}
+          containers:
+          - name: checkl2log
+            image: "{{ .Values.paymentCheckL2Log.image.repository }}:{{ .Values.paymentCheckL2Log.image.tag }}"
+            imagePullPolicy: {{ default .Values.global.imagePullPolicy .Values.paymentCheckL2Log.image.pullPolicy }}
+            {{- with .Values.paymentCheckL2Log.securityContext }}
+            securityContext:
+{{ toYaml . | nindent 14 }}
+            {{- end }}
+            env:
+            {{- range .Values.paymentCheckL2Log.env }}
+            - name: {{ .name }}
+              value: {{ tpl .value $ | quote }}
+            {{- end }}
+            {{- range .Values.paymentCheckL2Log.secretEnv }}
+            - name: {{ .name }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "payment.checkL2LogSecretName" $ }}
+                  key: {{ .key }}
+            {{- end }}
+            {{- with .Values.paymentCheckL2Log.resources }}
+            resources:
+{{ toYaml . | nindent 14 }}
+            {{- end }}
+            volumeMounts:
+            - name: tmp
+              mountPath: /tmp
+          volumes:
+          - name: tmp
+            emptyDir: {}
+          {{- with .Values.paymentCheckL2Log.nodeSelector }}
+          nodeSelector:
+{{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.paymentCheckL2Log.affinity }}
+          affinity:
+{{ toYaml . | nindent 12 }}
+          {{- end }}
+          {{- with .Values.paymentCheckL2Log.tolerations }}
+          tolerations:
+{{ toYaml . | nindent 12 }}
+          {{- end }}
+{{- end }}

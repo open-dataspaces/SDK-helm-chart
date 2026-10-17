@@ -9,6 +9,8 @@ spec:
       app: {{ include "mockserver.base" . }}-mockoon
   template:
     metadata:
+      annotations:
+        checksum/openapi: {{ .Files.Get "files/openapi.yaml" | sha256sum }}
       labels:
         app: {{ include "mockserver.base" . }}-mockoon
     spec:

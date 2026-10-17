@@ -165,4 +165,74 @@ paymentApp:
   - name: L3_CLIENT_SECRET
     key: PAYMENT_L3_CLIENT_SECRET
 
+paymentCheckL2Log:
+  enabled: true
+  schedule: "0 * * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 1
+  failedJobsHistoryLimit: 3
+  backoffLimit: 1
+  restartPolicy: Never
+  startingDeadlineSeconds: 300
 
+  image:
+    repository: ods-payment-checkl2log
+    tag: latest
+    pullPolicy: IfNotPresent
+
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1000
+    fsGroup: 1000
+    seccompProfile:
+      type: RuntimeDefault
+
+  securityContext:
+    allowPrivilegeEscalation: false
+    capabilities:
+      drop:
+      - ALL
+    readOnlyRootFilesystem: false
+
+  resources:
+    limits:
+      cpu: 500m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 128Mi
+
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+
+  env:
+  - name: POSTGRES_HOST
+    value: "{{ include \"payment.dbName\" . }}"
+  - name: POSTGRES_PORT
+    value: "5432"
+  - name: POSTGRES_DB
+    value: "fastapi_db"
+  - name: POSTGRES_USER
+    value: "postgres"
+  - name: S3_BUCKET
+    value: "pj-a-sbx"
+  - name: S3_PREFIX
+    value: "applogs/"
+  - name: AWS_DEFAULT_REGION
+    value: "ap-northeast-1"
+  - name: AWS_ENDPOINT_URL
+    value: "http://{{ .Release.Name }}-logging-silo:9000"
+
+  secretEnv:
+  - name: POSTGRES_PASSWORD
+    key: POSTGRES_PASSWORD
+  - name: AWS_ACCESS_KEY_ID
+    key: AWS_ACCESS_KEY_ID
+  - name: AWS_SECRET_ACCESS_KEY
+    key: AWS_SECRET_ACCESS_KEY
+
+  secrets:
+    postgresPassword: "postgres"
+    awsAccessKeyId: "minio-sample"
+    awsSecretAccessKey: "XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX"

@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "logging.base" . }}-silo
+spec:
+  type: {{ .Values.global.serviceType }}
+  selector:
+    app: {{ include "logging.base" . }}-silo
+  ports:
+  - name: api
+    port: {{ .Values.silo.service.apiPort }}
+    targetPort: {{ .Values.silo.service.apiPort }}
+  - name: console
+    port: {{ .Values.silo.service.consolePort }}
+    targetPort: {{ .Values.silo.service.consolePort }}

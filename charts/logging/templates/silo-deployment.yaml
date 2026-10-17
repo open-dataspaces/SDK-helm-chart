@@ -1,25 +1,25 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: {{ include "logging.base" . }}-minio
+  name: {{ include "logging.base" . }}-silo
 spec:
-  replicas: {{ .Values.minio.replicaCount }}
+  replicas: {{ .Values.silo.replicaCount }}
   selector:
     matchLabels:
-      app: {{ include "logging.base" . }}-minio
+      app: {{ include "logging.base" . }}-silo
   template:
     metadata:
       labels:
-        app: {{ include "logging.base" . }}-minio
+        app: {{ include "logging.base" . }}-silo
     spec:
       containers:
-      - name: minio
-        image: "{{ .Values.minio.image.repository }}:{{ .Values.minio.image.tag }}"
+      - name: silo
+        image: "{{ .Values.silo.image.repository }}:{{ .Values.silo.image.tag }}"
         imagePullPolicy: {{ .Values.global.imagePullPolicy }}
-        args: ["server", "/data", "--console-address", ":{{ .Values.minio.service.consolePort }}"]
+        args: ["server", "/data", "--console-address", ":{{ .Values.silo.service.consolePort }}"]
         ports:
-        - containerPort: {{ .Values.minio.service.apiPort }}
-        - containerPort: {{ .Values.minio.service.consolePort }}
+        - containerPort: {{ .Values.silo.service.apiPort }}
+        - containerPort: {{ .Values.silo.service.consolePort }}
         env:
         - name: MINIO_ROOT_USER
           valueFrom:
@@ -32,9 +32,9 @@ spec:
               name: {{ include "logging.base" . }}-secrets
               key: MINIO_ROOT_PASSWORD
         volumeMounts:
-        - name: minio-data
+        - name: silo-data
           mountPath: /data
       volumes:
-      - name: minio-data
+      - name: silo-data
         persistentVolumeClaim:
-          claimName: {{ include "logging.base" . }}-minio-data
+          claimName: {{ include "logging.base" . }}-silo-data

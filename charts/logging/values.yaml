@@ -6,7 +6,7 @@ secrets:
   minioRootUser: minio-sample
   minioRootPassword: XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
 persistence:
-  minio:
+  silo:
     size: 5Gi
   fluentdBuffer:
     size: 2Gi
@@ -18,11 +18,11 @@ fluentd:
   service:
     tcpPort: 24224
     udpPort: 24224
-minio:
+silo:
   replicaCount: 1
   image:
-    repository: quay.io/minio/minio
-    tag: latest
+    repository: docker.io/pgsty/silo
+    tag: RELEASE.2026-09-16T00-00-00Z
   service:
     apiPort: 9000
     consolePort: 9001

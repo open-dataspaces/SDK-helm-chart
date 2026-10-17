@@ -1,7 +1,7 @@
 apiVersion: batch/v1
 kind: Job
 metadata:
-  name: {{ include "logging.base" . }}-minio-init
+  name: {{ include "logging.base" . }}-silo-init
   annotations:
     helm.sh/hook: post-install,post-upgrade
     helm.sh/hook-delete-policy: before-hook-creation
@@ -11,8 +11,8 @@ spec:
     spec:
       restartPolicy: OnFailure
       containers:
-      - name: minio-init
-        image: "{{ .Values.minio.image.repository }}:{{ .Values.minio.image.tag }}"
+      - name: silo-init
+        image: "{{ .Values.silo.image.repository }}:{{ .Values.silo.image.tag }}"
         imagePullPolicy: {{ .Values.global.imagePullPolicy }}
         env:
         - name: MINIO_ROOT_USER
@@ -29,11 +29,11 @@ spec:
         - /bin/sh
         - -lc
         - |
-          until mc alias set local http://{{ include "logging.base" . }}-minio:{{ .Values.minio.service.apiPort }} "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; do
-            echo "waiting for minio..."
+          until mc alias set local http://{{ include "logging.base" . }}-silo:{{ .Values.silo.service.apiPort }} "$MINIO_ROOT_USER" "$MINIO_ROOT_PASSWORD"; do
+            echo "waiting for silo..."
             sleep 2
           done
-          mc mb -p local/{{ .Values.minio.bucketName }} || true
-          mc anonymous set none local/{{ .Values.minio.bucketName }}
-          echo "minio init done"
+          mc mb -p local/{{ .Values.silo.bucketName }} || true
+          mc anonymous set none local/{{ .Values.silo.bucketName }}
+          echo "silo init done"
 
