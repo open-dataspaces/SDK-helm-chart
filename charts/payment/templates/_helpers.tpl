@@ -13,3 +13,11 @@
 {{- define "payment.dbName" -}}
 {{- printf "%s-payment-db" (include "payment.base" .) | trunc 63 | trimSuffix "-" -}}
 {{- end -}}
+
+{{- define "payment.checkL2LogName" -}}
+{{- printf "%s-checkl2log" (include "payment.base" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}
+
+{{- define "payment.checkL2LogSecretName" -}}
+{{- printf "%s-checkl2log-secrets" (include "payment.base" .) | trunc 63 | trimSuffix "-" -}}
+{{- end -}}

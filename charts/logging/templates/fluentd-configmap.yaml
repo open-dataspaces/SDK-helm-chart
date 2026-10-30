@@ -4,4 +4,4 @@ metadata:
   name: {{ include "logging.base" . }}-fluentd-config
 data:
   fluent.conf: |
-{{ .Files.Get "files/fluent.conf" | replace "http://minio:9000" (printf "http://%s-minio:%v" (include "logging.base" .) .Values.minio.service.apiPort) | indent 4 }}
+{{ .Files.Get "files/fluent.conf" | replace "http://silo:9000" (printf "http://%s-silo:%v" (include "logging.base" .) .Values.silo.service.apiPort) | indent 4 }}
