@@ -2,7 +2,7 @@
 
 ## 概要
 
-本リポジトリでは、Open Dataspaces（以下ODS）が提供する SDK for Onbording の一つとして、Helm Chart 用のデプロイ定義ファイルを公開します。
+本リポジトリでは、Open Dataspaces（以下ODS）が提供する SDK for Onboarding の一つとして、Helm Chart 用のデプロイ定義ファイルを公開します。
 これらの定義ファイルを使うことで、利用者は自身のKubernetes環境に ODS のコンポーネント群を容易に配備し使用することができます。
 
 ## 前提条件
