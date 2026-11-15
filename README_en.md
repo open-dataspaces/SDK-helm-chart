@@ -47,14 +47,14 @@ block
 
   block:a:1
     columns 1
-    AuthN_DB["Authentication System RDBMS"]
+    AuthN_DB["RDBMS for Authentication System"]
     space
     AuthN_SV["Authentication System"]
   end
 
   block:b:1
     columns 1
-    AuthZ_DB["Authorization System RDBMS"]
+    AuthZ_DB["RDBMS for Authorization System"]
     space
     AuthZ_SV["ReBAC Authorization System"]
   end
@@ -68,13 +68,13 @@ block
     L2["L2: Web API Transfer Module"]
   end
 
-  IS["Industry Service\n(Data Provider Side)"]
+  IS["Industry Service (Data Provider Side)"]
 
 AuthN_SV -- "Stored data reference / update" --> AuthN_DB
 AuthZ_SV -- "Stored data reference / update" --> AuthZ_DB
 L3 -- "Authentication request" --> AuthN_SV
 L3 -- "Authorization request" --> AuthZ_SV
-L2 -- "Authentication token validation request" --> L3
+L2 -- "Authentication token verification request" --> L3
 L2 -- "Authorization request" --> AuthZ_SV
 L2 -- "Request forwarding" --> IS
 ```
@@ -86,13 +86,13 @@ Unless otherwise specified, all commands are assumed to be executed from the roo
 
 ### Startup and Shutdown
 
-#### Startup
+Startup:
 
 ```bash
 $ helm install ods .
 ```
 
-#### Shutdown
+Shutdown:
 
 ```
 $ helm uninstall ods
@@ -161,7 +161,7 @@ This script creates and configures Keycloak realms, clients for API authorizatio
 
 If you need to change these settings, edit `setup/setup_l3.sh` before executing the script.
 
-In addition, the business operator client IDs should be created as described later in "Data Configuration for Starting Operations".
+In addition, the business operator client IDs should be created as described later in "[Data Configuration for Starting Operations](#data-configuration-for-starting-operations)".
 
 Next, execute the following commands to create the OpenFGA store and authorization model, and apply the generated values to `charts/l2/values.yaml`.
 
@@ -377,7 +377,7 @@ Refer to the example below and add any required settings to the request payload 
     {
         "name": "RewritePath",
         "args": {
-        "_genkey_0": "/public/path/(?<segment>.*)",
+        "_genkey_0": "/externally-exposed-path/(?<segment>.*)",
         "_genkey_1": "/${segment}"
          }
     },
@@ -475,7 +475,7 @@ Run the following command to register authorization tuples for the industry serv
 
 Specify the following values for the variables used in the command.
 
-If you have already completed the "Registering Tuples in the OpenFGA Store" procedure described in the Operations Setup section of this SDK, you can skip this step.
+If you have already completed the "[Registering Tuples in the OpenFGA Store](#registering-tuples-in-the-openfga-store)" procedure described in the Operations Setup section of this SDK, you can skip this step.
 
 | Variable | Value |
 | -------- | ----- |
@@ -528,7 +528,7 @@ $ curl -i -X POST http://localhost:8083/stores/$USER_STORE_ID/write \
 
 ##### Configuring Data Access Routes
 
-Referring to "Integration with Industry Services - L2: Web API Transfer Module", configure routes so that communication logs are recorded by L2.
+Referring to "[Industry Service Integration - L2: Web API Transfer Module](#l2-web-api-transfer-module-1)", configure routes so that communication logs are recorded by L2.
 
 In this example, only GET requests to the mock server are permitted.
 
@@ -666,7 +666,7 @@ $ curl -X POST \
     "consumer_id": "'"$CONSUMER_ID"'",
     "data_id": "'"I0101"'",
     "payment_service_id": "'"$PAYMENT_SERVICE_ID"'",
-    "fee_model_name": "Pricing Model",
+    "fee_model_name": "Standard Pricing Model",
     "price": "1000.00",
     "tax_classification": "taxable",
     "tax_rate": "0.10",
@@ -692,7 +692,7 @@ If the operation is successful, a response similar to the following is returned.
   "consumer_id": "67802e2d-eb7e-458c-9746-54d764a83790",
   "data_id": "I0101",
   "payment_service_id": "e020a70e-c9be-11f1-8000-5847ca798141",
-  "fee_model_name": "Pricing Model",
+  "fee_model_name": "Standard Pricing Model",
   "price": "1000.00",
   "tax_classification": "taxable",
   "tax_rate": "0.1000",
@@ -700,7 +700,7 @@ If the operation is successful, a response similar to the following is returned.
 }
 ```
 
-#### Retrieving the Usage Fee Model List (Provider)
+##### Retrieving the Usage Fee Model List (Provider)
 
 The registered usage fee models can be confirmed using the following request.
 
@@ -731,7 +731,7 @@ If the operation is successful, a response similar to the following is returned.
       "consumer_id": "67802e2d-eb7e-458c-9746-54d764a83790",
       "data_id": "I0101",
       "payment_service_id": "e020a70e-c9be-11f1-8000-5847ca798141",
-      "fee_model_name": "Pricing Model",
+      "fee_model_name": "Standard Pricing Model",
       "price": "1000.00",
       "tax_classification": "taxable",
       "tax_rate": "0.1000",
